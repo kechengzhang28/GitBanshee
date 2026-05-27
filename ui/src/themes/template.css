@@ -1,0 +1,48 @@
+/* ========================================
+   GitBanshee Theme Template
+   Copy this file to ~/.gitbanshee/themes/
+   and customize the values below.
+
+   Only --gb-bg, --gb-accent, --gb-text
+   are required. All other variables are
+   auto-derived from these three unless
+   explicitly set.
+   ======================================== */
+
+:root {
+  /* ── Required (3) ── */
+  --gb-bg: #1e1e2e;
+  --gb-accent: #89b4fa;
+  --gb-text: #cdd6f4;
+
+  /* ── Optional — override to customize ── */
+
+  /* Surfaces */
+  --gb-panel: #181825;
+  --gb-toolbar: #11111b;
+  --gb-input: #313244;
+
+  /* Interactive */
+  --gb-hover: #45475a;
+  --gb-border: #585b70;
+
+  /* Text hierarchy */
+  --gb-text-sec: #a6adc8;
+  --gb-text-muted: #6c7086;
+
+  /* Accent variant */
+  --gb-accent-h: #b4befe;
+
+  /* Semantic */
+  --gb-success: #a6e3a1;
+  --gb-danger: #f38ba8;
+  --gb-warning: #fab387;
+
+  /* Branch lanes (6 hues, evenly distributed) */
+  --gb-branch-0: #89b4fa;
+  --gb-branch-1: #a6e3a1;
+  --gb-branch-2: #f9e2af;
+  --gb-branch-3: #f38ba8;
+  --gb-branch-4: #cba6f7;
+  --gb-branch-5: #94e2d5;
+}

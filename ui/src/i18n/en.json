@@ -1,0 +1,40 @@
+{
+  "common": {
+    "ok": "OK",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "close": "Close",
+    "loading": "Loading..."
+  },
+  "repo": {
+    "open": "Open Repository",
+    "openPrompt": "Select a Git repository to get started",
+    "noRepo": "No repository selected",
+    "commits": "commits",
+    "branches": "branches"
+  },
+  "commit": {
+    "hash": "Hash",
+    "author": "Author",
+    "date": "Date",
+    "message": "Message",
+    "noSelection": "Select a commit to view details"
+  },
+  "branch": {
+    "create": "Create Branch",
+    "delete": "Delete Branch",
+    "switch": "Switch Branch",
+    "current": "Current"
+  },
+  "graph": {
+    "zoomIn": "Zoom In",
+    "zoomOut": "Zoom Out",
+    "resetView": "Reset View"
+  },
+  "settings": {
+    "title": "Settings",
+    "theme": "Theme",
+    "language": "Language"
+  }
+}
