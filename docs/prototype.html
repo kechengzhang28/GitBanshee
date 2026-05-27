@@ -1,0 +1,731 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GitBanshee &ndash; Prototype</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <style>
+    :root {
+      --gb-bg: #0b0d0f;
+      --gb-accent: #388bfd;
+      --gb-text: #c2c6ca;
+      --gb-panel: #15161a;
+      --gb-toolbar: #0d0e10;
+      --gb-input: #1c1f24;
+      --gb-hover: #25272d;
+      --gb-border: #2a2c33;
+      --gb-text-sec: #797e85;
+      --gb-text-muted: #4d5156;
+      --gb-accent-h: #539bf5;
+      --gb-success: #3fb950;
+      --gb-danger: #f85149;
+      --gb-warning: #d29922;
+      --gb-branch-0: #58a6ff;
+      --gb-branch-1: #3fb950;
+      --gb-branch-2: #d29922;
+      --gb-branch-3: #a371f7;
+      --gb-branch-4: #f85149;
+      --gb-branch-5: #39d353;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      width: 100%; height: 100%;
+      background: #06070a;
+      color: var(--gb-text);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      font-size: 12px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      overflow: hidden;
+    }
+    .app-wrapper {
+      width: 100vw; height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      padding: 16px;
+    }
+    .app {
+      width: 1440px; height: 960px;
+      background: var(--gb-bg);
+      display: flex; flex-direction: column;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+      border-radius: 8px; overflow: hidden;
+      position: relative;
+    }
+    .icon { width: 14px; height: 14px; stroke-width: 2; flex-shrink: 0; }
+    .icon-xs { width: 10px; height: 10px; }
+    .icon-sm { width: 12px; height: 12px; }
+    .icon-md { width: 16px; height: 16px; }
+
+    /* ── RepoList (welcome) ── */
+    .repo-list {
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--gb-bg);
+    }
+    .repo-list.hidden { display: none; }
+    .repo-list-content {
+      display: flex; flex-direction: column; align-items: center; gap: 16px;
+    }
+    .repo-list-title {
+      font-size: 24px; font-weight: 700; color: var(--gb-accent);
+    }
+    .repo-list-sub {
+      font-size: 13px; color: var(--gb-text-sec);
+    }
+    .repo-list-btn {
+      padding: 10px 24px;
+      border-radius: 8px;
+      background: var(--gb-accent);
+      color: #fff;
+      font-size: 13px; font-weight: 500;
+      border: none; cursor: pointer;
+      font-family: inherit;
+    }
+    .repo-list-btn:hover { background: var(--gb-accent-h); }
+
+    /* ── TabBar ── */
+    .tabbar {
+      height: 36px;
+      background: var(--gb-toolbar);
+      border-bottom: 1px solid var(--gb-border);
+      display: flex; align-items: center;
+      padding: 0 12px; gap: 8px; flex-shrink: 0;
+    }
+    .tabbar-name {
+      font-size: 12px; font-weight: 500; color: var(--gb-accent);
+    }
+    .tabbar-btn {
+      width: 24px; height: 24px;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 4px; cursor: pointer;
+      color: var(--gb-text-muted);
+    }
+    .tabbar-btn:hover { background: var(--gb-hover); color: var(--gb-text); }
+
+    /* ── Toolbar ── */
+    .toolbar {
+      height: 40px;
+      background: var(--gb-toolbar);
+      border-bottom: 1px solid var(--gb-border);
+      display: flex; align-items: center;
+      padding: 0 8px; gap: 2px; flex-shrink: 0;
+    }
+    .tool-btn {
+      display: flex; align-items: center; gap: 6px;
+      padding: 0 8px; height: 32px;
+      border-radius: 4px; cursor: pointer;
+      color: var(--gb-text-sec); font-size: 12px;
+      background: transparent; border: none;
+      font-family: inherit;
+    }
+    .tool-btn:hover { background: var(--gb-hover); color: var(--gb-text); }
+    .tool-btn.accent { color: var(--gb-accent); }
+    .tool-btn.accent:hover { background: rgba(56,139,253,0.1); }
+    .tool-sep {
+      width: 1px; height: 24px;
+      background: var(--gb-border); margin: 0 4px;
+    }
+    .tool-toggle {
+      width: 32px; height: 32px;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 4px; cursor: pointer;
+      background: transparent; border: none;
+      color: var(--gb-text-muted);
+    }
+    .tool-toggle:hover { background: var(--gb-hover); color: var(--gb-text); }
+    .tool-toggle.active { color: var(--gb-accent); }
+
+    /* ── Main ── */
+    .main { flex: 1; display: flex; overflow: hidden; min-height: 0; }
+
+    /* ── Left Panel ── */
+    .left-panel {
+      width: 240px;
+      background: var(--gb-panel);
+      border-right: 1px solid var(--gb-border);
+      display: flex; flex-direction: column;
+      flex-shrink: 0; overflow: hidden;
+      transition: width 0.15s;
+    }
+    .left-panel.collapsed { width: 0; border-right: none; }
+    .left-tabs {
+      display: flex; border-bottom: 1px solid var(--gb-border);
+      padding: 4px 8px 0; gap: 0;
+    }
+    .left-tab {
+      padding: 6px 12px;
+      font-size: 12px; font-weight: 600; cursor: pointer;
+      color: var(--gb-text-muted);
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+    }
+    .left-tab.active {
+      color: var(--gb-accent);
+      border-bottom-color: var(--gb-accent);
+    }
+    .left-tab:hover:not(.active) { color: var(--gb-text); }
+    .section-header {
+      height: 28px;
+      display: flex; align-items: center;
+      padding: 0 12px; gap: 6px; cursor: pointer;
+      color: var(--gb-text-muted);
+      font-size: 10px; font-weight: 600;
+      letter-spacing: 0.5px; text-transform: uppercase;
+      flex-shrink: 0;
+    }
+    .section-header:hover { color: var(--gb-text); }
+    .section-header .spacer {
+      flex: 1; height: 1px;
+      border-top: 1px solid var(--gb-border);
+      margin-left: 4px;
+    }
+    .branch-item {
+      height: 28px;
+      display: flex; align-items: center;
+      padding: 0 12px; gap: 8px;
+      cursor: pointer; flex-shrink: 0;
+    }
+    .branch-item:hover { background: var(--gb-hover); }
+    .branch-item.current { background: var(--gb-hover); }
+    .branch-dot {
+      width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+    }
+    .branch-name {
+      font-size: 12px; color: var(--gb-text);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .branch-name.muted { color: var(--gb-text-muted); }
+    .tag-item {
+      height: 28px;
+      display: flex; align-items: center;
+      padding: 0 12px; gap: 8px;
+      cursor: pointer; flex-shrink: 0;
+    }
+    .tag-item:hover { background: var(--gb-hover); }
+
+    /* ── Commit Graph ── */
+    .commit-graph {
+      flex: 1;
+      background: var(--gb-bg);
+      display: flex; flex-direction: column;
+      min-width: 0; overflow: hidden;
+    }
+    .graph-header {
+      height: 28px;
+      background: var(--gb-toolbar);
+      border-bottom: 1px solid var(--gb-border);
+      display: flex; align-items: center;
+      padding: 0 12px; flex-shrink: 0;
+      font-size: 11px; font-weight: 500;
+      text-transform: uppercase; letter-spacing: 0.5px;
+      color: var(--gb-text-muted);
+    }
+    .graph-header > :first-child { width: 144px; }
+    .graph-header > :nth-child(2) { width: 180px; padding-left: 8px; }
+    .graph-header > :last-child { flex: 1; padding-left: 12px; }
+    .graph-body {
+      flex: 1; overflow-y: auto; min-height: 0;
+      position: relative;
+    }
+    .graph-row {
+      height: 32px; display: flex; align-items: center;
+      cursor: pointer;
+    }
+    .graph-row:hover { background: rgba(255,255,255,0.04); }
+    .graph-row.selected { background: rgba(255,255,255,0.06); }
+    .graph-cell-branch {
+      width: 144px; flex-shrink: 0;
+      padding-left: 8px; display: flex; align-items: center; gap: 6px;
+      font-size: 12px; white-space: nowrap; overflow: hidden;
+    }
+    .graph-cell-graph {
+      width: 180px; flex-shrink: 0;
+      position: relative; height: 32px;
+    }
+    .graph-cell-msg {
+      flex: 1; padding-left: 12px; padding-right: 16px;
+      font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      color: var(--gb-text); line-height: 32px;
+    }
+    .graph-svg {
+      position: absolute; top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none; overflow: visible;
+    }
+    .branch-chip {
+      display: inline-flex; align-items: center;
+      padding: 0 6px; height: 18px; border-radius: 3px;
+      font-size: 10px; font-weight: 500;
+      white-space: nowrap;
+    }
+
+    /* ── Right Panel ── */
+    .right-panel {
+      display: flex; flex-shrink: 0;
+      border-left: 1px solid var(--gb-border);
+      transition: width 0.15s;
+    }
+    .right-panel.hidden { display: none; }
+
+    /* ── Commit Details ── */
+    .commit-panel {
+      width: 340px;
+      background: var(--gb-panel);
+      display: flex; flex-direction: column;
+      flex-shrink: 0;
+    }
+    .commit-panel-header {
+      height: 32px;
+      display: flex; align-items: center;
+      padding: 0 12px;
+      border-bottom: 1px solid var(--gb-border);
+      font-size: 12px; font-weight: 600;
+      color: var(--gb-text); flex-shrink: 0;
+    }
+    .commit-panel-body {
+      flex: 1; overflow: auto; padding: 12px;
+      min-height: 0;
+    }
+    .commit-panel-empty {
+      display: flex; align-items: center; justify-content: center;
+      height: 100%; color: var(--gb-text-muted); font-size: 12px;
+    }
+    .commit-field { margin-bottom: 10px; }
+    .commit-field-label {
+      font-size: 11px; color: var(--gb-text-muted); margin-bottom: 2px;
+    }
+    .commit-field-value {
+      font-size: 12px; color: var(--gb-text);
+    }
+    .commit-field-value.mono {
+      font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+    }
+
+    /* ── AI Panel ── */
+    .ai-panel {
+      width: 200px; flex-shrink: 0;
+      background: var(--gb-panel);
+      display: flex; flex-direction: column;
+      border-left: 1px solid var(--gb-border);
+    }
+    .ai-panel-header {
+      height: 32px;
+      display: flex; align-items: center;
+      padding: 0 12px; gap: 8px;
+      border-bottom: 1px solid var(--gb-border);
+      font-size: 12px; font-weight: 600; color: var(--gb-text);
+      flex-shrink: 0;
+    }
+    .ai-panel-body {
+      flex: 1; padding: 8px;
+      color: var(--gb-text-muted); font-size: 12px;
+    }
+    .ai-chips {
+      display: flex; gap: 4px;
+      padding: 6px 8px;
+      border-top: 1px solid var(--gb-border);
+      flex-shrink: 0;
+    }
+    .ai-chip {
+      padding: 2px 8px;
+      border-radius: 4px; cursor: pointer;
+      background: var(--gb-input);
+      color: var(--gb-text-sec);
+      font-size: 12px;
+    }
+    .ai-chip:hover { color: var(--gb-text); }
+
+    /* ── StatusBar ── */
+    .statusbar {
+      height: 28px;
+      background: var(--gb-toolbar);
+      border-top: 1px solid var(--gb-border);
+      display: flex; align-items: center;
+      padding: 0 12px; gap: 16px;
+      font-size: 12px; color: var(--gb-text-muted);
+      flex-shrink: 0;
+    }
+    .statusbar .spacer { flex: 1; }
+    .statusbar-zoom { color: var(--gb-text-muted); }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--gb-border); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--gb-text-muted); }
+  </style>
+</head>
+<body>
+  <div class="app-wrapper">
+    <div class="app" id="app">
+      <!-- ═══ RepoList (welcome) ═══ -->
+      <div class="repo-list" id="repoList">
+        <div class="repo-list-content">
+          <div class="repo-list-title">GitBanshee</div>
+          <div class="repo-list-sub">Open a Git repository to visualize its commit history</div>
+          <button class="repo-list-btn" id="openRepoBtn">Open Repository</button>
+        </div>
+      </div>
+
+      <!-- ═══ RepoView ═══ -->
+      <div id="repoView" style="display:none; width:100%; height:100%; flex-direction:column;">
+        <!-- TabBar -->
+        <div class="tabbar" id="tabbar">
+          <span class="tabbar-name">gitbanshee</span>
+          <div class="tabbar-btn" title="New tab"><i data-lucide="plus" class="icon"></i></div>
+          <div style="flex:1"></div>
+          <div class="tabbar-btn" title="Help"><i data-lucide="help-circle" class="icon"></i></div>
+        </div>
+
+        <!-- RepoToolbar -->
+        <div class="toolbar">
+          <button class="tool-btn"><i data-lucide="undo-2" class="icon"></i><span>Undo</span></button>
+          <button class="tool-btn"><i data-lucide="redo-2" class="icon"></i><span>Redo</span></button>
+          <div class="tool-sep"></div>
+          <button class="tool-btn accent"><i data-lucide="download" class="icon"></i><span>Pull</span></button>
+          <button class="tool-btn"><i data-lucide="upload" class="icon"></i><span>Push</span></button>
+          <div class="tool-sep"></div>
+          <button class="tool-btn"><i data-lucide="git-branch" class="icon"></i><span>Branch</span></button>
+          <div class="tool-sep"></div>
+          <button class="tool-btn"><i data-lucide="archive" class="icon"></i><span>Stash</span></button>
+          <button class="tool-btn"><i data-lucide="arrow-up-from-line" class="icon"></i><span>Pop</span></button>
+          <div style="flex:1"></div>
+          <div class="tool-sep"></div>
+          <button class="tool-toggle active" id="toggleLeft" title="Toggle Left Panel"><i data-lucide="panel-left" class="icon"></i></button>
+          <button class="tool-toggle active" id="toggleCommit" title="Toggle Commit Details"><i data-lucide="info" class="icon"></i></button>
+          <button class="tool-toggle" id="toggleAI" title="Toggle AI Panel"><i data-lucide="sparkles" class="icon"></i></button>
+        </div>
+
+        <!-- Main -->
+        <div class="main">
+          <!-- Left Panel -->
+          <div class="left-panel" id="leftPanel">
+            <div class="left-tabs">
+              <div class="left-tab active">List</div>
+              <div class="left-tab">Agents</div>
+            </div>
+            <div style="flex:1; overflow-y:auto; min-height:0;">
+              <div class="section-header" data-section="local">
+                <i data-lucide="chevron-down" class="icon-xs"></i>
+                <span>LOCAL</span>
+                <div class="spacer"></div>
+                <span>3</span>
+              </div>
+              <div class="branch-item current">
+                <span class="branch-dot" style="background:var(--gb-branch-0)"></span>
+                <span class="branch-name">main</span>
+              </div>
+              <div class="branch-item">
+                <span class="branch-dot" style="background:var(--gb-branch-1)"></span>
+                <span class="branch-name">feature/auth</span>
+              </div>
+              <div class="branch-item">
+                <span class="branch-dot" style="background:var(--gb-branch-3)"></span>
+                <span class="branch-name">fix/login-bug</span>
+              </div>
+              <div class="section-header" data-section="remote">
+                <i data-lucide="chevron-right" class="icon-xs"></i>
+                <span>REMOTE</span>
+                <div class="spacer"></div>
+                <span>3</span>
+              </div>
+              <div class="section-header" data-section="tags">
+                <i data-lucide="chevron-right" class="icon-xs"></i>
+                <span>TAGS</span>
+                <div class="spacer"></div>
+                <span>0</span>
+              </div>
+              <div class="section-header" data-section="stashes">
+                <i data-lucide="chevron-right" class="icon-xs"></i>
+                <span>STASHES</span>
+                <div class="spacer"></div>
+                <span>0</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Commit Graph -->
+          <div class="commit-graph">
+            <div class="graph-header">
+              <div>Branch / Tag</div>
+              <div>Graph</div>
+              <div>Commit Message</div>
+            </div>
+            <div class="graph-body" id="graphBody"></div>
+          </div>
+
+          <!-- Right Panel -->
+          <div class="right-panel" id="rightPanel">
+            <!-- Commit Details -->
+            <div class="commit-panel" id="commitPanel">
+              <div class="commit-panel-header">Commit Details</div>
+              <div class="commit-panel-body" id="commitPanelBody">
+                <div class="commit-panel-empty">Select a commit to view details</div>
+              </div>
+            </div>
+            <!-- AI Panel -->
+            <div class="ai-panel" id="aiPanel">
+              <div class="ai-panel-header">
+                <span>AI</span>
+                <div style="flex:1"></div>
+                <div class="tabbar-btn" id="aiCloseBtn" title="Close AI Panel" style="width:20px;height:20px;">
+                  <i data-lucide="panel-right-close" class="icon-sm"></i>
+                </div>
+              </div>
+              <div class="ai-panel-body">AI features coming in v0.5</div>
+              <div class="ai-chips">
+                <span class="ai-chip">Msg</span>
+                <span class="ai-chip">Review</span>
+                <span class="ai-chip">Explain</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- StatusBar -->
+        <div class="statusbar">
+          <span>C:\Users\user\Projects\gitbanshee</span>
+          <span>main</span>
+          <span>1,234 commits</span>
+          <div class="spacer"></div>
+          <span class="statusbar-zoom">Zoom: 100%</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      lucide.createIcons();
+
+      // ── Mock data matching CommitNode + BranchInfo ──
+      const BRANCH_COLORS = ["#58a6ff","#3fb950","#d29922","#a371f7","#f85149","#39d353"];
+      const commits = [
+        { hash:"abc001",short_hash:"abc001",message:"Merge pull request #42 -- user authentication",author:"Zhang San",email:"zs@example.com",timestamp:1716854400,parents:["abc002","abc005"],lane:0,row:0 },
+        { hash:"abc002",short_hash:"abc002",message:"fix: handle null response in login path",author:"Zhang San",email:"zs@example.com",timestamp:1716850800,parents:["abc004"],lane:0,row:1 },
+        { hash:"abc003",short_hash:"abc003",message:"feat: add user authentication module",author:"Li Wei",email:"lw@example.com",timestamp:1716843600,parents:["abc005"],lane:2,row:2 },
+        { hash:"abc004",short_hash:"abc004",message:"fix: resolve login redirect",author:"Zhang San",email:"zs@example.com",timestamp:1716760800,parents:["abc006"],lane:0,row:3 },
+        { hash:"abc005",short_hash:"abc005",message:"feat: add JWT middleware",author:"Li Wei",email:"lw@example.com",timestamp:1716757200,parents:["abc006"],lane:2,row:4 },
+        { hash:"abc006",short_hash:"abc006",message:"Merge branch 'refactor/api'",author:"Li Wei",email:"lw@example.com",timestamp:1716753600,parents:["abc007","abc010"],lane:0,row:5 },
+        { hash:"abc007",short_hash:"abc007",message:"chore: update dependencies",author:"Zhang San",email:"zs@example.com",timestamp:1716670800,parents:[],lane:0,row:6 },
+        { hash:"abc008",short_hash:"abc008",message:"fix: resolve edge case in auth",author:"Wang Fang",email:"wf@example.com",timestamp:1716663600,parents:["abc009"],lane:1,row:7 },
+        { hash:"abc009",short_hash:"abc009",message:"fix: add null check for session",author:"Wang Fang",email:"wf@example.com",timestamp:1716660000,parents:["abc006"],lane:1,row:8 },
+        { hash:"abc010",short_hash:"abc010",message:"refactor: extract service layer",author:"Li Wei",email:"lw@example.com",timestamp:1716656400,parents:["abc011"],lane:3,row:9 },
+        { hash:"abc011",short_hash:"abc011",message:"refactor: unify error handling",author:"Li Wei",email:"lw@example.com",timestamp:1716652800,parents:["abc007"],lane:3,row:10 },
+      ];
+
+      const branchMap = {
+        "abc001": [{ name: "main", is_head: true, target_commit: "abc001", upstream: null }],
+        "abc003": [{ name: "feature/auth", is_head: false, target_commit: "abc003", upstream: null }],
+        "abc008": [{ name: "fix/login-bug", is_head: false, target_commit: "abc008", upstream: null }],
+        "abc010": [{ name: "refactor/api", is_head: false, target_commit: "abc010", upstream: null }],
+      };
+
+      // ── Page toggle ──
+      const repoList = document.getElementById('repoList');
+      const repoView = document.getElementById('repoView');
+      document.getElementById('openRepoBtn').addEventListener('click', () => {
+        repoList.classList.add('hidden');
+        repoView.style.display = 'flex';
+        lucide.createIcons();
+        buildGraph();
+      });
+
+      // ── Build commit graph with Canvas 2D ──
+      const ROW_HEIGHT = 32;
+      const LANE_WIDTH = 24;
+      const NODE_RADIUS = 5;
+      const PADDING_X = 26;
+      const GRAPH_COL_W = 180;
+      let selectedHash = null;
+
+      function getLaneX(lane) { return PADDING_X + lane * LANE_WIDTH + LANE_WIDTH / 2; }
+
+      function buildGraph() {
+        const body = document.getElementById('graphBody');
+        body.innerHTML = '';
+
+        const totalH = commits.length * ROW_HEIGHT;
+
+        commits.forEach((c, i) => {
+          const row = document.createElement('div');
+          row.className = 'graph-row';
+          row.style.height = ROW_HEIGHT + 'px';
+          row.style.position = 'relative';
+          row.dataset.hash = c.hash;
+          if (c.hash === selectedHash) row.classList.add('selected');
+
+          const branches = branchMap[c.hash];
+          let labelHtml = '';
+          if (branches && branches.length > 0) {
+            const color = BRANCH_COLORS[c.lane % BRANCH_COLORS.length];
+            const fw = branches[0].is_head ? 600 : 500;
+            labelHtml = `<span class="branch-chip" style="background:${color}18;color:${color};font-weight:${fw}">${branches[0].name}</span>`;
+          }
+
+          row.innerHTML = `
+            <div class="graph-cell-branch">${labelHtml}</div>
+            <div class="graph-cell-graph" id="graph-canvas-${i}"></div>
+            <div class="graph-cell-msg">${c.message}</div>
+          `;
+
+          row.addEventListener('click', () => selectCommit(c.hash));
+          body.appendChild(row);
+        });
+
+        body.style.minHeight = totalH + 'px';
+
+        // Draw SVG overlay for branch lines + nodes across entire body
+        const svgNS = 'http://www.w3.org/2000/svg';
+        const overlay = document.createElementNS(svgNS, 'svg');
+        overlay.setAttribute('class', 'graph-svg');
+        overlay.setAttribute('width', GRAPH_COL_W);
+        overlay.setAttribute('height', totalH);
+        overlay.style.position = 'absolute';
+        overlay.style.top = '0';
+        overlay.style.left = '144px';
+        overlay.style.width = GRAPH_COL_W + 'px';
+        overlay.style.height = totalH + 'px';
+        overlay.style.pointerEvents = 'none';
+
+        // Lines
+        commits.forEach((c, i) => {
+          const x1 = getLaneX(c.lane);
+          const y1 = i * ROW_HEIGHT + ROW_HEIGHT / 2;
+          const color = BRANCH_COLORS[c.lane % BRANCH_COLORS.length];
+
+          c.parents.forEach(ph => {
+            const pi = commits.findIndex(p => p.hash === ph);
+            if (pi === -1) return;
+            const pp = commits[pi];
+            const x2 = getLaneX(pp.lane);
+            const y2 = pi * ROW_HEIGHT + ROW_HEIGHT / 2;
+
+            const path = document.createElementNS(svgNS, 'path');
+            if (c.lane === pp.lane) {
+              path.setAttribute('d', `M ${x1} ${y1 + NODE_RADIUS} L ${x2} ${y2 - NODE_RADIUS}`);
+            } else {
+              const midY = (y1 + y2) / 2;
+              path.setAttribute('d', `M ${x1} ${y1 + NODE_RADIUS} L ${x1} ${midY} L ${x2} ${midY} L ${x2} ${y2 - NODE_RADIUS}`);
+            }
+            path.setAttribute('stroke', color);
+            path.setAttribute('stroke-width', '1.5');
+            path.setAttribute('fill', 'none');
+            overlay.appendChild(path);
+          });
+        });
+
+        // Nodes
+        commits.forEach((c, i) => {
+          const cx = getLaneX(c.lane);
+          const cy = i * ROW_HEIGHT + ROW_HEIGHT / 2;
+          const color = BRANCH_COLORS[c.lane % BRANCH_COLORS.length];
+
+          // glow for selected
+          if (c.hash === selectedHash) {
+            const glow = document.createElementNS(svgNS, 'circle');
+            glow.setAttribute('cx', cx);
+            glow.setAttribute('cy', cy);
+            glow.setAttribute('r', NODE_RADIUS + 4);
+            glow.setAttribute('fill', color);
+            glow.setAttribute('opacity', '0.3');
+            overlay.appendChild(glow);
+          }
+
+          const circle = document.createElementNS(svgNS, 'circle');
+          circle.setAttribute('cx', cx);
+          circle.setAttribute('cy', cy);
+          circle.setAttribute('r', c.hash === selectedHash ? NODE_RADIUS + 3 : NODE_RADIUS);
+          circle.setAttribute('fill', color);
+          overlay.appendChild(circle);
+        });
+
+        body.appendChild(overlay);
+      }
+
+      // ── Commit selection ──
+      function selectCommit(hash) {
+        selectedHash = hash;
+        // Rebuild graph to update selection highlight
+        buildGraph();
+        updateCommitDetail(hash);
+      }
+
+      function updateCommitDetail(hash) {
+        const c = commits.find(x => x.hash === hash);
+        const body = document.getElementById('commitPanelBody');
+        if (!c) {
+          body.innerHTML = '<div class="commit-panel-empty">Select a commit to view details</div>';
+          return;
+        }
+        const dateStr = new Date(c.timestamp * 1000).toLocaleString();
+        body.innerHTML = `
+          <div class="commit-field">
+            <div class="commit-field-label">Hash</div>
+            <div class="commit-field-value mono">${c.short_hash}</div>
+          </div>
+          <div class="commit-field">
+            <div class="commit-field-label">Author</div>
+            <div class="commit-field-value">${c.author}</div>
+          </div>
+          <div class="commit-field">
+            <div class="commit-field-label">Date</div>
+            <div class="commit-field-value">${dateStr}</div>
+          </div>
+          <div class="commit-field">
+            <div class="commit-field-label">Message</div>
+            <div class="commit-field-value" style="white-space:pre-wrap">${c.message}</div>
+          </div>
+        `;
+      }
+
+      // ── Toolbar toggles ──
+      const leftPanel = document.getElementById('leftPanel');
+      const rightPanel = document.getElementById('rightPanel');
+      const commitPanel = document.getElementById('commitPanel');
+      const aiPanel = document.getElementById('aiPanel');
+      const toggleLeft = document.getElementById('toggleLeft');
+      const toggleCommit = document.getElementById('toggleCommit');
+      const toggleAI = document.getElementById('toggleAI');
+      const aiCloseBtn = document.getElementById('aiCloseBtn');
+
+      let showLeft = true, showCommit = true, showAI = false;
+
+      toggleLeft.addEventListener('click', () => {
+        showLeft = !showLeft;
+        leftPanel.classList.toggle('collapsed', !showLeft);
+        toggleLeft.classList.toggle('active', showLeft);
+      });
+
+      function updateRightPanel() {
+        if (!showCommit && !showAI) {
+          rightPanel.classList.add('hidden');
+        } else {
+          rightPanel.classList.remove('hidden');
+        }
+        commitPanel.style.display = showCommit ? '' : 'none';
+        aiPanel.style.display = showAI ? '' : 'none';
+      }
+
+      toggleCommit.addEventListener('click', () => {
+        showCommit = !showCommit;
+        toggleCommit.classList.toggle('active', showCommit);
+        updateRightPanel();
+      });
+
+      function setAI(v) {
+        showAI = v;
+        toggleAI.classList.toggle('active', showAI);
+        updateRightPanel();
+      }
+
+      toggleAI.addEventListener('click', () => setAI(!showAI));
+      aiCloseBtn.addEventListener('click', () => setAI(false));
+    })();
+  </script>
+</body>
+</html>
