@@ -7,7 +7,7 @@ function App() {
   const path = useRepoStore((s) => s.path);
 
   return (
-    <div className="flex h-screen flex-col bg-gb-bg">
+    <div className="h-screen bg-gb-bg">
       {path ? <RepoView /> : <RepoList />}
     </div>
   );

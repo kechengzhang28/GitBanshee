@@ -1,9 +1,6 @@
-import { useEffect, useRef, useCallback, useState } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import { useRepoStore } from "../stores/repoStore";
 import type { CommitNode } from "../types";
-import { initGl } from "../renderer/webgl";
-import type { GlContext } from "../renderer/webgl";
-import { drawBackground, drawConnectingLines, drawNodes } from "../renderer/primitives";
 
 const ROW_HEIGHT = 32;
 const LANE_WIDTH = 24;
@@ -13,15 +10,11 @@ const OVERSHOT_ROWS = 20;
 const COMMIT_LIMIT = 500;
 
 const BRANCH_COLORS = [
-  "#4FC3F7", "#81C784", "#FFB74D", "#CE93D8", "#E57373", "#4DD0E1",
+  "#58a6ff", "#3fb950", "#d29922", "#a371f7", "#f85149", "#39d353",
 ];
 
 export default function GraphCanvas() {
-  const glCanvasRef = useRef<HTMLCanvasElement>(null);
-  const canvas2dRef = useRef<HTMLCanvasElement>(null);
-  const glRef = useRef<GlContext | null>(null);
-  const dimensionsRef = useRef({ w: 800, h: 600 });
-  const [useWebgl, setUseWebgl] = useState(true);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const path = useRepoStore((s) => s.path);
   const commits = useRepoStore((s) => s.commits);
@@ -32,8 +25,8 @@ export default function GraphCanvas() {
   const offsetRef = useRef(0);
   const panRef = useRef({ x: 0, y: 0 });
   const zoomRef = useRef(1);
-  const hoveredRef = useRef<string | null>(null);
   const loadingRef = useRef(false);
+  const rafRef = useRef(0);
 
   const loadMore = useCallback(async () => {
     if (!path || loadingRef.current) return;
@@ -50,90 +43,43 @@ export default function GraphCanvas() {
     }
   }, [path]);
 
-  useEffect(() => {
-    const canvas = glCanvasRef.current;
+  const draw = useCallback(() => {
+    const canvas = canvasRef.current;
     if (!canvas) return;
-    try {
-      glRef.current = initGl(canvas);
-    } catch {
-      setUseWebgl(false);
+
+    const rect = canvas.getBoundingClientRect();
+    const w = rect.width;
+    const h = rect.height;
+    if (w === 0 || h === 0) {
+      rafRef.current = requestAnimationFrame(draw);
+      return;
     }
-  }, []);
 
-  useEffect(() => {
-    const el = glCanvasRef.current || canvas2dRef.current;
-    if (!el) return;
-    const obs = new ResizeObserver(([e]) => {
-      const { width, height } = e.contentRect;
-      dimensionsRef.current = { w: width, h: height };
-      el.width = width * devicePixelRatio;
-      el.height = height * devicePixelRatio;
-    });
-    obs.observe(el);
-    return () => obs.disconnect();
-  }, [useWebgl]);
+    const dpr = window.devicePixelRatio || 1;
+    if (canvas.width !== w * dpr || canvas.height !== h * dpr) {
+      canvas.width = w * dpr;
+      canvas.height = h * dpr;
+    }
 
-  useEffect(() => {
-    let animId: number;
-    let running = true;
-    const render = () => {
-      if (!running) return;
-      if (useWebgl && glRef.current) {
-        renderWebGL();
-      } else if (!useWebgl) {
-        renderCanvas2D();
-      }
-      animId = requestAnimationFrame(render);
-    };
-    render();
-    return () => {
-      running = false;
-      cancelAnimationFrame(animId);
-    };
-  }, [commits, selectedCommit, useWebgl]);
-
-  // ── WebGL Render ──
-
-  const renderWebGL = useCallback(() => {
-    const g = glRef.current;
-    const canvas = glCanvasRef.current;
-    if (!g || !canvas) return;
-
-    const { gl } = g;
-    const dpr = devicePixelRatio;
-    const { w, h } = dimensionsRef.current;
-    const zoom = zoomRef.current;
-    const pan = panRef.current;
-
-    gl.viewport(0, 0, w * dpr, h * dpr);
-    gl.clearColor(0.102, 0.114, 0.137, 1);
-    gl.clear(gl.COLOR_BUFFER_BIT);
-
-    const firstRow = Math.max(0, Math.floor(-pan.y / zoom / ROW_HEIGHT) - OVERSHOT_ROWS);
-    const lastRow = Math.min(commits.length, Math.ceil((h - pan.y / zoom) / ROW_HEIGHT) + OVERSHOT_ROWS);
-    const maxLane = Math.max(1, ...commits.map((c) => c.lane + 1));
-
-    drawBackground(g, pan.x, pan.y, zoom, w, h, firstRow, lastRow, maxLane, [0.18, 0.2, 0.24, 1]);
-    drawConnectingLines(g, commits, firstRow, lastRow, pan.x, pan.y, zoom, w, h, BRANCH_COLORS);
-    drawNodes(g, commits, firstRow, lastRow, pan.x, pan.y, zoom, w, h, dpr, BRANCH_COLORS, selectedCommit?.hash || null, hoveredRef.current);
-  }, [commits, selectedCommit]);
-
-  // ── Canvas 2D Fallback ──
-
-  const renderCanvas2D = useCallback(() => {
-    const canvas = canvas2dRef.current;
-    if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const dpr = devicePixelRatio;
-    const { w, h } = dimensionsRef.current;
     const zoom = zoomRef.current;
     const pan = panRef.current;
+    const root = getComputedStyle(document.documentElement);
+    const bgColor = root.getPropertyValue("--gb-bg").trim() || "#0b0d0f";
+
+    // Clear and fill background
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.fillStyle = bgColor;
+    ctx.fillRect(0, 0, w * dpr, h * dpr);
+
+    if (commits.length === 0) {
+      rafRef.current = requestAnimationFrame(draw);
+      return;
+    }
 
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, w, h);
-
     ctx.save();
     ctx.translate(pan.x, pan.y);
     ctx.scale(zoom, zoom);
@@ -141,73 +87,82 @@ export default function GraphCanvas() {
     const firstRow = Math.max(0, Math.floor(-pan.y / zoom / ROW_HEIGHT) - OVERSHOT_ROWS);
     const lastRow = Math.min(commits.length, Math.ceil((h - pan.y / zoom) / ROW_HEIGHT) + OVERSHOT_ROWS);
     const maxLane = Math.max(1, ...commits.map((c) => c.lane + 1));
+    const lineColor = root.getPropertyValue("--gb-border").trim() || "#2a2c33";
 
-    const root = getComputedStyle(document.documentElement);
-    const bgColor = root.getPropertyValue("--gb-bg").trim() || "#1A1D23";
-    const lineColor = root.getPropertyValue("--gb-border").trim() || "#2D313A";
-
-    ctx.fillStyle = bgColor;
-    ctx.fillRect(-pan.x / zoom, -pan.y / zoom, w / zoom, h / zoom);
-
-    for (let l = 0; l < maxLane; l++) {
-      const x = l * LANE_WIDTH + LANE_WIDTH / 2 + PADDING_X;
-      ctx.strokeStyle = lineColor;
-      ctx.lineWidth = 1 / zoom;
-      ctx.setLineDash([4, 4]);
-      ctx.beginPath();
-      ctx.moveTo(x, firstRow * ROW_HEIGHT);
-      ctx.lineTo(x, lastRow * ROW_HEIGHT);
-      ctx.stroke();
-    }
-    ctx.setLineDash([]);
-
-    for (let i = firstRow; i < lastRow; i++) {
-      const c = commits[i];
-      if (!c) continue;
-      const cx = c.lane * LANE_WIDTH + LANE_WIDTH / 2 + PADDING_X;
-      const cy = i * ROW_HEIGHT + ROW_HEIGHT / 2;
-
-      for (const ph of c.parents) {
-        const pi = commits.findIndex((p) => p.hash === ph);
-        if (pi === -1) continue;
-        const pp = commits[pi];
-        const px = pp.lane * LANE_WIDTH + LANE_WIDTH / 2 + PADDING_X;
-        const py = pi * ROW_HEIGHT + ROW_HEIGHT / 2;
-        ctx.strokeStyle = BRANCH_COLORS[c.lane % BRANCH_COLORS.length];
-        ctx.lineWidth = 1.5 / zoom;
+    try {
+      // Lane background lines
+      for (let l = 0; l < maxLane; l++) {
+        const x = l * LANE_WIDTH + LANE_WIDTH / 2 + PADDING_X;
+        ctx.strokeStyle = lineColor;
+        ctx.lineWidth = 1 / zoom;
+        ctx.setLineDash([4, 4]);
         ctx.beginPath();
-        if (c.lane === pp.lane) {
-          ctx.moveTo(cx, cy + NODE_RADIUS);
-          ctx.lineTo(px, py - NODE_RADIUS);
-        } else {
-          const midY = (cy + py) / 2;
-          ctx.moveTo(cx, cy + NODE_RADIUS);
-          ctx.lineTo(cx, midY);
-          ctx.lineTo(px, midY);
-          ctx.lineTo(px, py - NODE_RADIUS);
-        }
+        ctx.moveTo(x, firstRow * ROW_HEIGHT);
+        ctx.lineTo(x, lastRow * ROW_HEIGHT);
         ctx.stroke();
       }
+      ctx.setLineDash([]);
 
-      const isSel = selectedCommit?.hash === c.hash;
-      const r = NODE_RADIUS + (isSel ? 3 : 0);
-      ctx.beginPath();
-      ctx.arc(cx, cy, r + (isSel ? 3 : 0), 0, Math.PI * 2);
-      if (isSel) {
+      // Connecting lines + nodes
+      for (let i = firstRow; i < lastRow; i++) {
+        const c = commits[i];
+        if (!c) continue;
+
+        const cx = c.lane * LANE_WIDTH + LANE_WIDTH / 2 + PADDING_X;
+        const cy = i * ROW_HEIGHT + ROW_HEIGHT / 2;
+
+        for (const ph of c.parents) {
+          const pi = commits.findIndex((p) => p.hash === ph);
+          if (pi === -1) continue;
+          const pp = commits[pi];
+          const px = pp.lane * LANE_WIDTH + LANE_WIDTH / 2 + PADDING_X;
+          const py = pi * ROW_HEIGHT + ROW_HEIGHT / 2;
+
+          ctx.strokeStyle = BRANCH_COLORS[c.lane % BRANCH_COLORS.length];
+          ctx.lineWidth = 1.5 / zoom;
+          ctx.beginPath();
+          if (c.lane === pp.lane) {
+            ctx.moveTo(cx, cy + NODE_RADIUS);
+            ctx.lineTo(px, py - NODE_RADIUS);
+          } else {
+            const midY = (cy + py) / 2;
+            ctx.moveTo(cx, cy + NODE_RADIUS);
+            ctx.lineTo(cx, midY);
+            ctx.lineTo(px, midY);
+            ctx.lineTo(px, py - NODE_RADIUS);
+          }
+          ctx.stroke();
+        }
+
+        const isSel = selectedCommit?.hash === c.hash;
+        const r = NODE_RADIUS + (isSel ? 3 : 0);
+
+        if (isSel) {
+          ctx.beginPath();
+          ctx.arc(cx, cy, r + 3, 0, Math.PI * 2);
+          ctx.fillStyle = BRANCH_COLORS[c.lane % BRANCH_COLORS.length];
+          ctx.globalAlpha = 0.3;
+          ctx.fill();
+          ctx.globalAlpha = 1;
+        }
+
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
         ctx.fillStyle = BRANCH_COLORS[c.lane % BRANCH_COLORS.length];
-        ctx.globalAlpha = 0.3;
         ctx.fill();
-        ctx.globalAlpha = 1;
       }
-      ctx.beginPath();
-      ctx.arc(cx, cy, r, 0, Math.PI * 2);
-      ctx.fillStyle = BRANCH_COLORS[c.lane % BRANCH_COLORS.length];
-      ctx.fill();
+    } catch {
+      // Drawing failed, skip frame
     }
+
     ctx.restore();
+    rafRef.current = requestAnimationFrame(draw);
   }, [commits, selectedCommit]);
 
-  // ── Interaction ──
+  useEffect(() => {
+    rafRef.current = requestAnimationFrame(draw);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [draw]);
 
   const handleWheel = useCallback((e: React.WheelEvent) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -230,13 +185,14 @@ export default function GraphCanvas() {
       };
     }
 
-    const visibleBottom = (-panRef.current.y + dimensionsRef.current.h) / zoomRef.current;
+    const rect2 = e.currentTarget.getBoundingClientRect();
+    const visibleBottom = (-panRef.current.y + rect2.height) / zoomRef.current;
     const contentBottom = commits.length * ROW_HEIGHT;
     if (visibleBottom > contentBottom - 200) loadMore();
   }, [commits.length, loadMore]);
 
   const screenToCommit = useCallback((clientX: number, clientY: number): CommitNode | null => {
-    const el = glCanvasRef.current || canvas2dRef.current;
+    const el = canvasRef.current;
     if (!el) return null;
     const rect = el.getBoundingClientRect();
     const x = (clientX - rect.left - panRef.current.x) / zoomRef.current;
@@ -253,24 +209,17 @@ export default function GraphCanvas() {
     selectCommit(screenToCommit(e.clientX, e.clientY) || null);
   }, [screenToCommit, selectCommit]);
 
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    const c = screenToCommit(e.clientX, e.clientY);
-    hoveredRef.current = c?.hash || null;
-  }, [screenToCommit]);
-
   return (
-    <div className="relative h-full w-full">
-      {useWebgl ? (
-        <canvas ref={glCanvasRef} className="absolute inset-0" style={{ zIndex: 1 }} />
-      ) : (
-        <canvas ref={canvas2dRef} className="absolute inset-0" style={{ zIndex: 1 }} />
-      )}
+    <div className="relative h-full w-full bg-gb-bg">
+      <canvas
+        ref={canvasRef}
+        className="absolute inset-0 size-full"
+      />
       <div
         className="absolute inset-0"
-        style={{ zIndex: 3, cursor: "crosshair" }}
+        style={{ cursor: "crosshair" }}
         onWheel={handleWheel}
         onClick={handleClick}
-        onMouseMove={handleMouseMove}
       />
     </div>
   );

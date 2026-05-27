@@ -1,27 +1,27 @@
 :root {
-  --gb-bg: #1A1D23;
-  --gb-accent: #3B96D1;
-  --gb-text: #D4D4D4;
+  --gb-bg: #0b0d0f;
+  --gb-accent: #388bfd;
+  --gb-text: #c2c6ca;
 
-  --gb-panel: #22262E;
-  --gb-toolbar: #1E2128;
-  --gb-input: #2A2E38;
-  --gb-hover: #2D313A;
-  --gb-border: #2D313A;
+  --gb-panel: #15161a;
+  --gb-toolbar: #0d0e10;
+  --gb-input: #1c1f24;
+  --gb-hover: #25272d;
+  --gb-border: #2a2c33;
 
-  --gb-text-sec: #8B929E;
-  --gb-text-muted: #5C6370;
+  --gb-text-sec: #797e85;
+  --gb-text-muted: #4d5156;
 
-  --gb-accent-h: #4AA3E0;
+  --gb-accent-h: #539bf5;
 
-  --gb-success: #81C784;
-  --gb-danger: #E57373;
-  --gb-warning: #FFB74D;
+  --gb-success: #3fb950;
+  --gb-danger: #f85149;
+  --gb-warning: #d29922;
 
-  --gb-branch-0: #4FC3F7;
-  --gb-branch-1: #81C784;
-  --gb-branch-2: #FFB74D;
-  --gb-branch-3: #CE93D8;
-  --gb-branch-4: #E57373;
-  --gb-branch-5: #4DD0E1;
+  --gb-branch-0: #58a6ff;
+  --gb-branch-1: #3fb950;
+  --gb-branch-2: #d29922;
+  --gb-branch-3: #a371f7;
+  --gb-branch-4: #f85149;
+  --gb-branch-5: #39d353;
 }

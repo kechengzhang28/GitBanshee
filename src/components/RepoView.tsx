@@ -22,7 +22,7 @@ export default function RepoView() {
   }
 
   return (
-    <div className="flex h-full flex-col bg-gb-bg">
+    <div className="flex h-full flex-col overflow-hidden bg-gb-bg">
       <TabBar />
       <RepoToolbar />
       <div className="flex flex-1 overflow-hidden">
