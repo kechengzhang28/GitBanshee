@@ -12,7 +12,7 @@ GitBanshee is a Tauri v2 desktop application for Git repository visualization wi
 | **State Management** | Zustand | Lightweight, minimal boilerplate for IPC-driven data |
 | **Styling** | Tailwind CSS | Utility-first rapid UI development |
 | **Git Engine** | libgit2 bindings, CLI fallback | Native performance for core ops, CLI for complex operations |
-| **Graph Rendering** | Canvas 2D | Suitable for rendering 10K+ commit nodes |
+| **Graph Rendering** | Canvas 2D + WebGL | WebGL for GPU-accelerated nodes/lines; Canvas 2D for high-quality text |
 | **Graph Layout** | Custom lane-assignment algorithm | Computed on the Rust side, sent to frontend as coordinates |
 | **AI Backend** | Ollama (local) + OpenAI (cloud) | Interchangeable dual-backend, no vendor lock-in |
 | **Persistence** | Tauri plugin store | Encrypted storage for settings and API keys |
@@ -36,6 +36,11 @@ GitBanshee is a Tauri v2 desktop application for Git repository visualization wi
 GitBanshee/
 ├── src/                       # React frontend
 │   ├── components/            # UI components per feature domain
+│   ├── renderer/              # WebGL + Canvas 2D hybrid graph renderer
+│   │   ├── webgl.ts           # WebGL context, shader programs, VBO/VAO
+│   │   ├── shaders.ts         # GLSL vertex/fragment shader sources
+│   │   ├── primitives.ts      # High-level draw: nodes, lines, background
+│   │   └── text.ts            # Canvas 2D text annotation helpers
 │   ├── stores/                # Zustand state stores
 │   ├── types/                 # Shared TypeScript type definitions
 │   ├── utils/                 # IPC wrappers, theme loader

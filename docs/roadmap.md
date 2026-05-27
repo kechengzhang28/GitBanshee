@@ -13,7 +13,7 @@ Development follows a gradual expansion from MVP to production-ready release.
 - Set up the i18n framework (English only, but the architecture is in place for future locales).
 - Set up CI pipeline: lint, type-check, basic cross-platform build.
 - Implement IPC commands: open a repository, fetch commit list (paginated), list branches.
-- Build the Canvas commit graph: lane assignment algorithm (Rust), multi-layer rendering pipeline, click-to-select, hover-to-highlight, virtual scrolling.
+- Build the WebGL + Canvas 2D hybrid commit graph: lane assignment algorithm (Rust), GPU-accelerated node/line rendering (WebGL), text labels (Canvas 2D), click-to-select, hover-to-highlight, virtual scrolling.
 
 ### Acceptance Criteria
 

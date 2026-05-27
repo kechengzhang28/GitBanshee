@@ -51,7 +51,7 @@ Two patterns documented in [architecture.md](architecture.md): `invoke` for disc
 
 ## GraphCanvas
 
-See [graph-layout.md](graph-layout.md) for the lane assignment algorithm and 5-layer Canvas rendering pipeline. See [theme-system.md](theme-system.md) for how graph colors stay in sync with the active theme.
+See [graph-layout.md](graph-layout.md) for the lane assignment algorithm and WebGL + Canvas 2D hybrid rendering pipeline. See [theme-system.md](theme-system.md) for how graph colors stay in sync with the active theme.
 
 ## Performance Considerations
 

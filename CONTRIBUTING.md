@@ -40,6 +40,7 @@ npm run check:rs    # Rust only
 GitBanshee/
 ├── src/                   # React frontend
 │   ├── components/
+│   ├── renderer/           # WebGL + Canvas 2D hybrid graph renderer
 │   ├── stores/            # Zustand state management
 │   ├── types/             # TypeScript interfaces
 │   ├── utils/             # IPC wrappers, theme loader
