@@ -42,6 +42,10 @@ Data models are defined as Rust structs with serialization support, passed acros
 
 All models are serializable (JSON via IPC), with layout coordinates pre-computed on the Rust side so the frontend receives render-ready data.
 
+## Graph Layout
+
+Lane assignment is implemented as a custom algorithm (`engine/src/git/graph.rs`) that processes commits in reverse topological order, allocating and reusing lane columns to minimize visual overlap. The [git-graph](https://crates.io/crates/git-graph) crate was evaluated as an alternative but rejected — its data model omits commit metadata (`message`, `author`, `timestamp`) and is designed for terminal rendering, making it unsuitable for a desktop visualizer that needs full commit data for the IPC layer.
+
 ## Caching Strategy
 
 An in-memory LRU cache on the Rust side stores fetched commit data keyed by repository path and range. This avoids re-reading Git history for operations like branch switching or returning to a previously viewed range. The cache is invalidated on any mutating operation (commit, merge, rebase) to ensure consistency. The frontend also retains a copy in its state store for immediate UI updates without IPC roundtrips.

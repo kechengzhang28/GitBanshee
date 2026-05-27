@@ -20,12 +20,14 @@ export interface GlContext {
     circleRes: WebGLUniformLocation | null;
     circleFill: WebGLUniformLocation | null;
     circleRadius: WebGLUniformLocation | null;
+    circlePointSize: WebGLUniformLocation | null;
 
     glowPos: number;
     glowTranslate: WebGLUniformLocation | null;
     glowScale: WebGLUniformLocation | null;
     glowRes: WebGLUniformLocation | null;
     glowFill: WebGLUniformLocation | null;
+    glowPointSize: WebGLUniformLocation | null;
   };
 }
 
@@ -93,12 +95,14 @@ export function initGl(canvas: HTMLCanvasElement): GlContext {
       circleRes: getUni(circleProg, "u_resolution"),
       circleFill: getUni(circleProg, "u_color"),
       circleRadius: getUni(circleProg, "u_radius"),
+      circlePointSize: getUni(circleProg, "u_pointSize"),
 
       glowPos: getAttr(glowProg, "a_position"),
       glowTranslate: getUni(glowProg, "u_translate"),
       glowScale: getUni(glowProg, "u_scale"),
       glowRes: getUni(glowProg, "u_resolution"),
       glowFill: getUni(glowProg, "u_color"),
+      glowPointSize: getUni(glowProg, "u_pointSize"),
     },
   };
 }

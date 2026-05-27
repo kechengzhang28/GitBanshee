@@ -131,6 +131,7 @@ export function drawNodes(
   scale: number,
   width: number,
   height: number,
+  dpr: number,
   branchColors: string[],
   selectedHash: string | null,
   hoveredHash: string | null,
@@ -159,6 +160,7 @@ export function drawNodes(
       width,
       height,
       1.0,
+      dpr,
       (x, y) => {
         const c = commitAt(commits, x, y);
         return hexToRgba(branchColors[(c?.lane || 0) % branchColors.length]);
@@ -184,6 +186,7 @@ export function drawNodes(
       gl.uniform2f(locations.glowTranslate, translateX, translateY);
       gl.uniform1f(locations.glowScale, scale);
       gl.uniform2f(locations.glowRes, width, height);
+      gl.uniform1f(locations.glowPointSize, NODE_RADIUS * 6 * dpr);
       const col = hexToRgba(branchColors[c.lane % branchColors.length]);
       gl.uniform4fv(locations.glowFill, col);
       gl.drawArrays(gl.POINTS, 0, 1);
@@ -193,7 +196,7 @@ export function drawNodes(
     drawPointSprites(
       g,
       [c.lane * LANE_WIDTH + LANE_WIDTH / 2 + PADDING_X, c.row * ROW_HEIGHT + ROW_HEIGHT / 2],
-      translateX, translateY, scale, width, height, r,
+      translateX, translateY, scale, width, height, r, dpr,
       () => hexToRgba(branchColors[c.lane % branchColors.length]),
     );
   }
@@ -204,6 +207,7 @@ function drawPointSprites(
   positions: number[],
   tx: number, ty: number, scale: number, w: number, h: number,
   radiusScale: number,
+  dpr: number,
   getColor: (x: number, y: number) => number[],
 ) {
   const { gl, programs, locations } = g;
@@ -218,8 +222,8 @@ function drawPointSprites(
   gl.uniform1f(locations.circleScale, scale);
   gl.uniform2f(locations.circleRes, w, h);
   gl.uniform1f(locations.circleRadius, NODE_RADIUS * radiusScale);
+  gl.uniform1f(locations.circlePointSize, NODE_RADIUS * radiusScale * 2 * dpr);
 
-  // For simplicity, use first point's color for all
   const col = positions.length >= 2 ? getColor(positions[0], positions[1]) : [0.5, 0.5, 0.5, 1];
   gl.uniform4fv(locations.circleFill, col);
 

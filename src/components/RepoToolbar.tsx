@@ -1,16 +1,18 @@
+import { Undo2, Redo2, Download, Upload, GitBranch, Archive, ArrowUpFromLine } from "lucide-react";
+
 export default function RepoToolbar() {
   return (
     <div className="flex h-10 items-center gap-0.5 border-b border-gb-border bg-gb-toolbar px-2">
-      <ToolbarButton icon="\u21A9" label="Undo" />
-      <ToolbarButton icon="\u21AA" label="Redo" />
+      <ToolbarButton Icon={Undo2} label="Undo" />
+      <ToolbarButton Icon={Redo2} label="Redo" />
       <Separator />
-      <ToolbarButton icon="\u2193" label="Pull" accent />
-      <ToolbarButton icon="\u2191" label="Push" />
+      <ToolbarButton Icon={Download} label="Pull" accent />
+      <ToolbarButton Icon={Upload} label="Push" />
       <Separator />
-      <ToolbarButton icon="\u2442" label="Branch" />
+      <ToolbarButton Icon={GitBranch} label="Branch" />
       <Separator />
-      <ToolbarButton icon="\u2630" label="Stash" />
-      <ToolbarButton icon="\u2913" label="Pop" />
+      <ToolbarButton Icon={Archive} label="Stash" />
+      <ToolbarButton Icon={ArrowUpFromLine} label="Pop" />
       <div className="flex-1" />
       <span className="text-xs text-gb-text-muted">v0.2</span>
     </div>
@@ -18,11 +20,11 @@ export default function RepoToolbar() {
 }
 
 function ToolbarButton({
-  icon,
+  Icon,
   label,
   accent,
 }: {
-  icon: string;
+  Icon: React.ElementType;
   label: string;
   accent?: boolean;
 }) {
@@ -32,7 +34,7 @@ function ToolbarButton({
         accent ? "text-gb-accent" : "text-gb-text-sec"
       } hover:bg-gb-hover hover:text-gb-text`}
     >
-      <span className="text-sm">{icon}</span>
+      <Icon size={14} />
       <span>{label}</span>
     </button>
   );

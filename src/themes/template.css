@@ -7,42 +7,44 @@
    are required. All other variables are
    auto-derived from these three unless
    explicitly set.
+
+   Palette: GitBanshee Design System
    ======================================== */
 
 :root {
   /* ── Required (3) ── */
-  --gb-bg: #1e1e2e;
-  --gb-accent: #89b4fa;
-  --gb-text: #cdd6f4;
+  --gb-bg: #1A1D23;
+  --gb-accent: #3B96D1;
+  --gb-text: #D4D4D4;
 
   /* ── Optional — override to customize ── */
 
   /* Surfaces */
-  --gb-panel: #181825;
-  --gb-toolbar: #11111b;
-  --gb-input: #313244;
+  --gb-panel: #22262E;
+  --gb-toolbar: #1E2128;
+  --gb-input: #2A2E38;
 
   /* Interactive */
-  --gb-hover: #45475a;
-  --gb-border: #585b70;
+  --gb-hover: #2D313A;
+  --gb-border: #2D313A;
 
   /* Text hierarchy */
-  --gb-text-sec: #a6adc8;
-  --gb-text-muted: #6c7086;
+  --gb-text-sec: #8B929E;
+  --gb-text-muted: #5C6370;
 
   /* Accent variant */
-  --gb-accent-h: #b4befe;
+  --gb-accent-h: #4AA3E0;
 
   /* Semantic */
-  --gb-success: #a6e3a1;
-  --gb-danger: #f38ba8;
-  --gb-warning: #fab387;
+  --gb-success: #81C784;
+  --gb-danger: #E57373;
+  --gb-warning: #FFB74D;
 
-  /* Branch lanes (6 hues, evenly distributed) */
-  --gb-branch-0: #89b4fa;
-  --gb-branch-1: #a6e3a1;
-  --gb-branch-2: #f9e2af;
-  --gb-branch-3: #f38ba8;
-  --gb-branch-4: #cba6f7;
-  --gb-branch-5: #94e2d5;
+  /* Branch lanes (6 hues) */
+  --gb-branch-0: #4FC3F7;
+  --gb-branch-1: #81C784;
+  --gb-branch-2: #FFB74D;
+  --gb-branch-3: #CE93D8;
+  --gb-branch-4: #E57373;
+  --gb-branch-5: #4DD0E1;
 }

@@ -163,7 +163,7 @@
               "id": "eLSFe",
               "width": "fill_container",
               "height": 28,
-              "fill": "#2D313A",
+              "fill": "#303234",
               "gap": 8,
               "padding": [
                 0,
@@ -929,7 +929,7 @@
               "id": "kOaNi",
               "type": "ref",
               "ref": "C3gges",
-              "fill": "#22262E33",
+              "fill": "#25272933",
               "stroke": {
                 "thickness": {
                   "bottom": 2
@@ -3176,7 +3176,7 @@
               "id": "PulfL",
               "width": "fill_container",
               "height": 28,
-              "fill": "#2D313A",
+              "fill": "#303234",
               "gap": 8,
               "padding": [
                 0,
@@ -3650,27 +3650,27 @@
     },
     "bg-hover": {
       "type": "color",
-      "value": "#2D313A"
+      "value": "#303234"
     },
     "bg-primary": {
       "type": "color",
-      "value": "#1A1D23"
+      "value": "#1C1E20"
     },
     "bg-secondary": {
       "type": "color",
-      "value": "#22262E"
+      "value": "#252729"
     },
     "bg-tertiary": {
       "type": "color",
-      "value": "#2A2E38"
+      "value": "#2D2F32"
     },
     "bg-toolbar": {
       "type": "color",
-      "value": "#1E2128"
+      "value": "#212324"
     },
     "border": {
       "type": "color",
-      "value": "#2D313A"
+      "value": "#303234"
     },
     "branch-0": {
       "type": "color",

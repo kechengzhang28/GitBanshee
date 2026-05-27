@@ -1,5 +1,6 @@
 export const VERTEX = `
 attribute vec2 a_position;
+uniform float u_pointSize;
 uniform vec2 u_translate;
 uniform float u_scale;
 uniform vec2 u_resolution;
@@ -8,6 +9,7 @@ void main() {
   vec2 pos = (a_position + u_translate) * u_scale;
   vec2 clip = (pos / u_resolution) * 2.0 - 1.0;
   gl_Position = vec4(clip.x, -clip.y, 0.0, 1.0);
+  gl_PointSize = u_pointSize * u_scale;
 }
 `;
 

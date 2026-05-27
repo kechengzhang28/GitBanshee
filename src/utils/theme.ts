@@ -53,16 +53,15 @@ function derive(
   overrides: Record<string, string>,
 ): Record<string, string> {
   const isDark = luminance(...hexToRgb(bg)) < 128;
-  const panel = isDark ? shiftLuminance(bg, -0.08) : shiftLuminance(bg, 0.03);
+  const panel = isDark ? shiftLuminance(bg, 0.08) : shiftLuminance(bg, -0.03);
   const toolbar = isDark
-    ? shiftLuminance(bg, -0.15)
-    : shiftLuminance(bg, 0.06);
+    ? shiftLuminance(bg, 0.04)
+    : shiftLuminance(bg, -0.06);
   const input = isDark
-    ? shiftLuminance(bg, 0.08)
+    ? shiftLuminance(bg, 0.12)
     : shiftLuminance(bg, -0.04);
   const hover = blend(bg, text, 0.1);
   const border = blend(bg, text, 0.2);
-  const [ar, ag, ab] = hexToRgb(accent);
   return {
     "--gb-bg": overrides["--gb-bg"] || bg,
     "--gb-accent": overrides["--gb-accent"] || accent,
@@ -72,18 +71,18 @@ function derive(
     "--gb-input": overrides["--gb-input"] || input,
     "--gb-hover": overrides["--gb-hover"] || hover,
     "--gb-border": overrides["--gb-border"] || border,
-    "--gb-text-sec": overrides["--gb-text-sec"] || rgbToHex(ar * 0.8, ag * 0.8, ab * 0.8),
-    "--gb-text-muted": overrides["--gb-text-muted"] || rgbToHex(ar * 0.6, ag * 0.6, ab * 0.6),
+    "--gb-text-sec": overrides["--gb-text-sec"] || blend(text, bg, 0.4),
+    "--gb-text-muted": overrides["--gb-text-muted"] || blend(text, bg, 0.6),
     "--gb-accent-h": overrides["--gb-accent-h"] || shiftLuminance(accent, 0.15),
-    "--gb-success": overrides["--gb-success"] || "#a6e3a1",
-    "--gb-danger": overrides["--gb-danger"] || "#f38ba8",
-    "--gb-warning": overrides["--gb-warning"] || "#fab387",
-    "--gb-branch-0": overrides["--gb-branch-0"] || "#89b4fa",
-    "--gb-branch-1": overrides["--gb-branch-1"] || "#a6e3a1",
-    "--gb-branch-2": overrides["--gb-branch-2"] || "#f9e2af",
-    "--gb-branch-3": overrides["--gb-branch-3"] || "#f38ba8",
-    "--gb-branch-4": overrides["--gb-branch-4"] || "#cba6f7",
-    "--gb-branch-5": overrides["--gb-branch-5"] || "#94e2d5",
+    "--gb-success": overrides["--gb-success"] || "#81C784",
+    "--gb-danger": overrides["--gb-danger"] || "#E57373",
+    "--gb-warning": overrides["--gb-warning"] || "#FFB74D",
+    "--gb-branch-0": overrides["--gb-branch-0"] || "#4FC3F7",
+    "--gb-branch-1": overrides["--gb-branch-1"] || "#81C784",
+    "--gb-branch-2": overrides["--gb-branch-2"] || "#FFB74D",
+    "--gb-branch-3": overrides["--gb-branch-3"] || "#CE93D8",
+    "--gb-branch-4": overrides["--gb-branch-4"] || "#E57373",
+    "--gb-branch-5": overrides["--gb-branch-5"] || "#4DD0E1",
   };
 }
 
