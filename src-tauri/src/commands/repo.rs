@@ -1,5 +1,5 @@
 use crate::git::engine;
-use crate::models::{BranchInfo, CommitNode};
+use crate::models::{BranchInfo, CommitNode, DiffContent};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
@@ -31,4 +31,10 @@ pub fn get_commits(path: String, offset: usize, limit: usize) -> Result<Vec<Comm
 pub fn get_branches(path: String) -> Result<Vec<BranchInfo>, String> {
     let repo = engine::open_repo(&path).map_err(|e| e.to_string())?;
     engine::get_branches(&repo).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn get_commit_diff(path: String, hash: String) -> Result<DiffContent, String> {
+    let repo = engine::open_repo(&path).map_err(|e| e.to_string())?;
+    engine::get_commit_diff(&repo, &hash).map_err(|e| e.to_string())
 }

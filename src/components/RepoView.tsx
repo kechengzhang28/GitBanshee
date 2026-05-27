@@ -1,7 +1,10 @@
 import { useRepoStore } from "../stores/repoStore";
+import TabBar from "./TabBar";
 import RepoToolbar from "./RepoToolbar";
+import LeftPanel from "./LeftPanel";
 import GraphCanvas from "./GraphCanvas";
 import CommitDetails from "./CommitDetails";
+import AIPanel from "./AIPanel";
 import StatusBar from "./StatusBar";
 
 export default function RepoView() {
@@ -11,8 +14,8 @@ export default function RepoView() {
     return (
       <div className="flex h-full items-center justify-center bg-gb-bg">
         <div className="text-center">
-          <p className="text-gb-danger text-lg font-medium">Failed to open repository</p>
-          <p className="text-gb-text-muted mt-2 text-sm">{error}</p>
+          <p className="text-lg font-medium text-gb-danger">Failed to open repository</p>
+          <p className="mt-2 text-sm text-gb-text-muted">{error}</p>
         </div>
       </div>
     );
@@ -20,13 +23,20 @@ export default function RepoView() {
 
   return (
     <div className="flex h-full flex-col bg-gb-bg">
+      <TabBar />
       <RepoToolbar />
       <div className="flex flex-1 overflow-hidden">
+        <div className="w-[240px] shrink-0 overflow-hidden">
+          <LeftPanel />
+        </div>
         <div className="flex-1 overflow-hidden">
           <GraphCanvas />
         </div>
-        <div className="w-[340px] shrink-0 overflow-hidden border-l border-gb-border">
-          <CommitDetails />
+        <div className="flex shrink-0 border-l border-gb-border">
+          <div className="w-[340px]">
+            <CommitDetails />
+          </div>
+          <AIPanel />
         </div>
       </div>
       <StatusBar />

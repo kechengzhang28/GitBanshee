@@ -1,25 +1,26 @@
 import { useEffect, useRef, useCallback } from "react";
 import { useRepoStore } from "../stores/repoStore";
 import type { CommitNode } from "../types";
+import { initGl } from "../renderer/webgl";
+import type { GlContext } from "../renderer/webgl";
+import { drawBackground, drawConnectingLines, drawNodes } from "../renderer/primitives";
+import { drawLabels } from "../renderer/text";
 
 const ROW_HEIGHT = 32;
 const LANE_WIDTH = 24;
 const NODE_RADIUS = 5;
-const LABEL_PADDING = 6;
+const PADDING_X = 40;
 const OVERSHOT_ROWS = 20;
 const COMMIT_LIMIT = 500;
 
-function cssVar(name: string): string {
-  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-}
-
-interface Point {
-  x: number;
-  y: number;
-}
+const BRANCH_COLORS = [
+  "#89b4fa", "#a6e3a1", "#f9e2af", "#f38ba8", "#cba6f7", "#94e2d5",
+];
 
 export default function GraphCanvas() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const glCanvasRef = useRef<HTMLCanvasElement>(null);
+  const textCanvasRef = useRef<HTMLCanvasElement>(null);
+  const glRef = useRef<GlContext | null>(null);
   const dimensionsRef = useRef({ w: 800, h: 600 });
 
   const path = useRepoStore((s) => s.path);
@@ -29,17 +30,12 @@ export default function GraphCanvas() {
   const selectedCommit = useRepoStore((s) => s.selectedCommit);
 
   const offsetRef = useRef(0);
-  const panRef = useRef<Point>({ x: 0, y: 0 });
+  const panRef = useRef({ x: 0, y: 0 });
   const zoomRef = useRef(1);
   const hoveredRef = useRef<string | null>(null);
   const loadingRef = useRef(false);
 
   const maxLane = Math.max(1, ...commits.map((c) => c.lane + 1));
-
-  const colorForLane = useCallback((lane: number): string => {
-    const idx = lane % 6;
-    return cssVar(`--gb-branch-${idx}`) || cssVar("--gb-accent") || "#888";
-  }, []);
 
   const loadMore = useCallback(async () => {
     if (!path || loadingRef.current) return;
@@ -56,36 +52,64 @@ export default function GraphCanvas() {
     }
   }, [path]);
 
+  // Init WebGL
   useEffect(() => {
-    const el = canvasRef.current;
+    const canvas = glCanvasRef.current;
+    if (!canvas) return;
+    glRef.current = initGl(canvas);
+  }, []);
+
+  // Resize
+  useEffect(() => {
+    const el = glCanvasRef.current;
     if (!el) return;
     const obs = new ResizeObserver(([e]) => {
       const { width, height } = e.contentRect;
       dimensionsRef.current = { w: width, h: height };
       el.width = width * devicePixelRatio;
       el.height = height * devicePixelRatio;
+      const tc = textCanvasRef.current;
+      if (tc) {
+        tc.width = width * devicePixelRatio;
+        tc.height = height * devicePixelRatio;
+      }
     });
     obs.observe(el);
     return () => obs.disconnect();
   }, []);
 
-  const draw = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+  // Render loop
+  useEffect(() => {
+    let animId: number;
+    let running = true;
 
+    const render = () => {
+      if (!running) return;
+      renderFrame();
+      animId = requestAnimationFrame(render);
+    };
+    render();
+    return () => {
+      running = false;
+      cancelAnimationFrame(animId);
+    };
+  }, [commits, selectedCommit]);
+
+  const renderFrame = useCallback(() => {
+    const g = glRef.current;
+    const glCanvas = glCanvasRef.current;
+    const textCanvas = textCanvasRef.current;
+    if (!g || !glCanvas) return;
+
+    const { gl } = g;
     const dpr = devicePixelRatio;
     const { w, h } = dimensionsRef.current;
     const zoom = zoomRef.current;
     const pan = panRef.current;
 
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, w, h);
-
-    ctx.save();
-    ctx.translate(pan.x, pan.y);
-    ctx.scale(zoom, zoom);
+    gl.viewport(0, 0, w * dpr, h * dpr);
+    gl.clearColor(0.1, 0.11, 0.14, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
 
     const rowHeight = ROW_HEIGHT;
     const firstRow = Math.max(0, Math.floor(-pan.y / zoom / rowHeight) - OVERSHOT_ROWS);
@@ -94,139 +118,70 @@ export default function GraphCanvas() {
       Math.ceil((h - pan.y / zoom) / rowHeight) + OVERSHOT_ROWS,
     );
 
-    const rootStyle = getComputedStyle(document.documentElement);
-    const bgColor = rootStyle.getPropertyValue("--gb-bg").trim() || "#1e1e2e";
-    const lineColor = rootStyle.getPropertyValue("--gb-border").trim() || "#555";
+    const lineColor: [number, number, number, number] = [0.18, 0.2, 0.24, 1];
 
-    ctx.fillStyle = bgColor;
-    ctx.fillRect(-pan.x / zoom, -pan.y / zoom, w / zoom, h / zoom);
+    // Transforms: canvas coords → WebGL clip space
+    const glX = pan.x;
+    const glY = pan.y;
 
-    for (let l = 0; l < maxLane; l++) {
-      const x = l * LANE_WIDTH + LANE_WIDTH / 2 + 40;
-      ctx.strokeStyle = lineColor;
-      ctx.lineWidth = 1 / zoom;
-      ctx.setLineDash([4, 4]);
-      ctx.beginPath();
-      ctx.moveTo(x, firstRow * rowHeight);
-      ctx.lineTo(x, lastRow * rowHeight);
-      ctx.stroke();
+    drawBackground(g, glX, glY, zoom, w, h, firstRow, lastRow, maxLane, lineColor);
+    drawConnectingLines(g, commits, firstRow, lastRow, glX, glY, zoom, w, h, BRANCH_COLORS);
+    drawNodes(g, commits, firstRow, lastRow, glX, glY, zoom, w, h, BRANCH_COLORS, selectedCommit?.hash || null, hoveredRef.current);
+
+    // Canvas 2D text
+    const ctx = textCanvas?.getContext("2d");
+    if (ctx && textCanvas) {
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, w, h);
+      const textColor = getComputedStyle(document.documentElement).getPropertyValue("--gb-text-sec").trim() || "#888";
+      drawLabels(ctx, commits, firstRow, lastRow, glX, glY, zoom, textColor);
     }
-    ctx.setLineDash([]);
+  }, [commits, selectedCommit, maxLane]);
 
-    for (let i = firstRow; i < lastRow; i++) {
-      const c = commits[i];
-      if (!c) continue;
+  const handleWheel = useCallback(
+    (e: React.WheelEvent) => {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      const my = e.clientY - rect.top;
 
-      const pos = {
-        x: c.lane * LANE_WIDTH + LANE_WIDTH / 2 + 40,
-        y: i * ROW_HEIGHT + ROW_HEIGHT / 2,
-      };
+      if (e.ctrlKey) {
+        e.preventDefault();
+        const oldZoom = zoomRef.current;
+        const newZoom = Math.max(0.1, Math.min(5, oldZoom * (e.deltaY > 0 ? 0.9 : 1.1)));
 
-      for (const parentHash of c.parents) {
-        const pi = commits.findIndex((p) => p.hash === parentHash);
-        if (pi === -1) continue;
-        const pp = commits[pi];
-        const pPos = {
-          x: pp.lane * LANE_WIDTH + LANE_WIDTH / 2 + 40,
-          y: pi * ROW_HEIGHT + ROW_HEIGHT / 2,
+        panRef.current = {
+          x: mx - (mx - panRef.current.x) * (newZoom / oldZoom),
+          y: my - (my - panRef.current.y) * (newZoom / oldZoom),
         };
-
-        ctx.strokeStyle = colorForLane(c.lane);
-        ctx.lineWidth = 1.5 / zoom;
-        ctx.beginPath();
-        if (c.lane === pp.lane) {
-          ctx.moveTo(pos.x, pos.y + NODE_RADIUS);
-          ctx.lineTo(pPos.x, pPos.y - NODE_RADIUS);
-        } else {
-          const midY = (pos.y + pPos.y) / 2;
-          ctx.moveTo(pos.x, pos.y + NODE_RADIUS);
-          ctx.lineTo(c.lane * LANE_WIDTH + LANE_WIDTH / 2 + 40, midY);
-          ctx.lineTo(pp.lane * LANE_WIDTH + LANE_WIDTH / 2 + 40, midY);
-          ctx.lineTo(pPos.x, pPos.y - NODE_RADIUS);
-        }
-        ctx.stroke();
+        zoomRef.current = newZoom;
+      } else {
+        panRef.current = {
+          x: panRef.current.x - e.deltaX,
+          y: panRef.current.y - e.deltaY,
+        };
       }
 
-      const isSelected = selectedCommit?.hash === c.hash;
-      const isHovered = hoveredRef.current === c.hash;
-      const r = isSelected ? NODE_RADIUS + 3 : isHovered ? NODE_RADIUS + 1 : NODE_RADIUS;
-
-      if (isSelected) {
-        ctx.beginPath();
-        ctx.arc(pos.x, pos.y, r + 3, 0, Math.PI * 2);
-        ctx.fillStyle = colorForLane(c.lane);
-        ctx.globalAlpha = 0.3;
-        ctx.fill();
-        ctx.globalAlpha = 1;
-      }
-
-      ctx.beginPath();
-      ctx.arc(pos.x, pos.y, r, 0, Math.PI * 2);
-      ctx.fillStyle = colorForLane(c.lane);
-      ctx.fill();
-
-      if (c.hash === commits[0]?.hash) {
-        const textColor = rootStyle.getPropertyValue("--gb-text-sec").trim() || "#888";
-        ctx.fillStyle = textColor;
-        ctx.font = `${11 / zoom}px sans-serif`;
-        ctx.fillText("HEAD", pos.x + NODE_RADIUS + LABEL_PADDING, pos.y + 4);
-      }
-    }
-
-    ctx.restore();
-  }, [commits, selectedCommit, maxLane, colorForLane]);
-
-  useEffect(() => {
-    let animationId: number;
-    let running = true;
-    const render = () => {
-      if (!running) return;
-      draw();
-      animationId = requestAnimationFrame(render);
-    };
-    render();
-    return () => {
-      running = false;
-      cancelAnimationFrame(animationId);
-    };
-  }, [draw]);
-
-  const handleWheel = useCallback((e: React.WheelEvent) => {
-    if (e.ctrlKey) {
-      e.preventDefault();
-      const delta = e.deltaY > 0 ? 0.9 : 1.1;
-      zoomRef.current = Math.max(0.1, Math.min(5, zoomRef.current * delta));
-    } else {
-      panRef.current = {
-        x: panRef.current.x - e.deltaX,
-        y: panRef.current.y - e.deltaY,
-      };
-    }
-
-    const h = dimensionsRef.current.h;
-    const zoom = zoomRef.current;
-    const visibleBottom = (-panRef.current.y + h) / zoom;
-    const contentBottom = commits.length * ROW_HEIGHT;
-    if (visibleBottom > contentBottom - 200) {
-      loadMore();
-    }
-  }, [commits.length, loadMore]);
+      // Lazy load
+      const visibleBottom = (-panRef.current.y + dimensionsRef.current.h) / zoomRef.current;
+      const contentBottom = commits.length * ROW_HEIGHT;
+      if (visibleBottom > contentBottom - 200) loadMore();
+    },
+    [commits.length, loadMore],
+  );
 
   const screenToCommit = useCallback(
     (clientX: number, clientY: number): CommitNode | null => {
-      const canvas = canvasRef.current;
-      if (!canvas) return null;
-      const rect = canvas.getBoundingClientRect();
+      const el = glCanvasRef.current;
+      if (!el) return null;
+      const rect = el.getBoundingClientRect();
       const x = (clientX - rect.left - panRef.current.x) / zoomRef.current;
       const y = (clientY - rect.top - panRef.current.y) / zoomRef.current;
 
       for (const c of commits) {
-        const pos = {
-          x: c.lane * LANE_WIDTH + LANE_WIDTH / 2 + 40,
-          y: c.row * ROW_HEIGHT + ROW_HEIGHT / 2,
-        };
-        const dx = x - pos.x;
-        const dy = y - pos.y;
+        const cx = c.lane * LANE_WIDTH + LANE_WIDTH / 2 + PADDING_X;
+        const cy = c.row * ROW_HEIGHT + ROW_HEIGHT / 2;
+        const dx = x - cx;
+        const dy = y - cy;
         if (dx * dx + dy * dy < (NODE_RADIUS + 8) * (NODE_RADIUS + 8)) {
           return c;
         }
@@ -255,18 +210,22 @@ export default function GraphCanvas() {
   return (
     <div className="relative h-full w-full">
       <canvas
-        ref={canvasRef}
+        ref={glCanvasRef}
         className="absolute inset-0"
+        style={{ zIndex: 1 }}
+      />
+      <canvas
+        ref={textCanvasRef}
+        className="absolute inset-0"
+        style={{ zIndex: 2, pointerEvents: "none" }}
+      />
+      <div
+        className="absolute inset-0"
+        style={{ zIndex: 3, cursor: "crosshair" }}
         onWheel={handleWheel}
         onClick={handleClick}
         onMouseMove={handleMouseMove}
-        style={{ cursor: "crosshair" }}
       />
-      {loadingRef.current && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded bg-gb-panel px-3 py-1 text-xs text-gb-text-muted">
-          Loading...
-        </div>
-      )}
     </div>
   );
 }

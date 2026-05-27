@@ -1,6 +1,6 @@
 use crate::git::graph::assign_lanes;
-use crate::models::{BranchInfo, CommitNode};
-use git2::{BranchType, Repository, Sort};
+use crate::models::{BranchInfo, CommitNode, DiffContent, DiffFile, DiffHunk, DiffLine};
+use git2::{BranchType, DiffOptions, Repository, Sort};
 
 pub fn open_repo(path: &str) -> Result<Repository, git2::Error> {
     Repository::open(path)
@@ -68,4 +68,99 @@ pub fn get_branches(repo: &Repository) -> Result<Vec<BranchInfo>, git2::Error> {
     }
 
     Ok(result)
+}
+
+pub fn get_commit_diff(repo: &Repository, hash: &str) -> Result<DiffContent, git2::Error> {
+    let oid = git2::Oid::from_str(hash).map_err(|e| git2::Error::from_str(&e.to_string()))?;
+    let commit = repo.find_commit(oid)?;
+    let tree = commit.tree()?;
+
+    let parent_tree = if commit.parent_count() > 0 {
+        Some(commit.parent(0)?.tree()?)
+    } else {
+        None
+    };
+
+    let mut diff_opts = DiffOptions::new();
+    diff_opts.context_lines(3);
+
+    let diff = repo.diff_tree_to_tree(
+        parent_tree.as_ref(),
+        Some(&tree),
+        Some(&mut diff_opts),
+    )?;
+
+    let mut files: Vec<DiffFile> = Vec::new();
+
+    for i in 0..diff.deltas().count() {
+        let patch = match git2::Patch::from_diff(&diff, i) {
+            Ok(Some(p)) => p,
+            _ => continue,
+        };
+        let delta = diff.deltas().nth(i).unwrap();
+
+        let status = match delta.status() {
+            git2::Delta::Added => "added",
+            git2::Delta::Deleted => "deleted",
+            git2::Delta::Modified => "modified",
+            git2::Delta::Renamed => "renamed",
+            _ => "modified",
+        }
+        .to_string();
+
+        let path = delta
+            .new_file()
+            .path()
+            .map(|p| p.to_string_lossy().to_string())
+            .unwrap_or_default();
+
+        let mut hunks: Vec<DiffHunk> = Vec::new();
+        let (mut additions, mut deletions) = (0usize, 0usize);
+
+        for h in 0..patch.num_hunks() {
+            let (hunk, lines) = patch.hunk(h)?;
+            let header = String::from_utf8_lossy(hunk.header()).to_string();
+            let mut hunk_lines = Vec::new();
+
+            for li in 0..lines {
+                let line = patch.line_in_hunk(h, li)?;
+                let content = String::from_utf8_lossy(line.content()).to_string();
+                let kind = match line.origin() {
+                    '+' => {
+                        additions += 1;
+                        "addition"
+                    }
+                    '-' => {
+                        deletions += 1;
+                        "deletion"
+                    }
+                    _ => "context",
+                };
+
+                hunk_lines.push(DiffLine {
+                    kind: kind.to_string(),
+                    content,
+                    old_lineno: line.old_lineno().map(|n| n as usize),
+                    new_lineno: line.new_lineno().map(|n| n as usize),
+                });
+            }
+
+            hunks.push(DiffHunk {
+                header,
+                lines: hunk_lines,
+            });
+        }
+
+        if !hunks.is_empty() {
+            files.push(DiffFile {
+                path,
+                status,
+                hunks,
+                additions,
+                deletions,
+            });
+        }
+    }
+
+    Ok(DiffContent { files })
 }

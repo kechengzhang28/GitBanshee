@@ -22,3 +22,27 @@ export interface OpenRepoResult {
   branch_count: number;
   commit_count: number;
 }
+
+export interface DiffContent {
+  files: DiffFile[];
+}
+
+export interface DiffFile {
+  path: string;
+  status: string;
+  hunks: DiffHunk[];
+  additions: number;
+  deletions: number;
+}
+
+export interface DiffHunk {
+  header: string;
+  lines: DiffLine[];
+}
+
+export interface DiffLine {
+  kind: string;
+  content: string;
+  old_lineno: number | null;
+  new_lineno: number | null;
+}
