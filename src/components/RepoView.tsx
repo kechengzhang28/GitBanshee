@@ -2,7 +2,7 @@ import { useRepoStore } from "../stores/repoStore";
 import TabBar from "./TabBar";
 import RepoToolbar from "./RepoToolbar";
 import LeftPanel from "./LeftPanel";
-import GraphCanvas from "./GraphCanvas";
+import CommitGraph from "./CommitGraph";
 import CommitDetails from "./CommitDetails";
 import AIPanel from "./AIPanel";
 import StatusBar from "./StatusBar";
@@ -30,7 +30,7 @@ export default function RepoView() {
           <LeftPanel />
         </div>
         <div className="flex-1 overflow-hidden">
-          <GraphCanvas />
+          <CommitGraph />
         </div>
         <div className="flex shrink-0 border-l border-gb-border">
           <div className="w-[340px]">

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { PanelRightOpen, PanelRightClose } from "lucide-react";
 
 export default function AIPanel() {
   const [open, setOpen] = useState(false);
@@ -11,7 +12,7 @@ export default function AIPanel() {
           className="mt-2 flex h-5 w-5 items-center justify-center rounded text-xs text-gb-text-muted hover:bg-gb-hover"
           title="Open AI Panel"
         >
-          {"\u25C0"}
+          <PanelRightOpen size={14} />
         </button>
       </div>
     );
@@ -27,7 +28,7 @@ export default function AIPanel() {
           className="flex h-5 w-5 items-center justify-center rounded text-xs text-gb-text-muted hover:bg-gb-hover"
           title="Close AI Panel"
         >
-          {"\u25B6"}
+          <PanelRightClose size={14} />
         </button>
       </div>
       <div className="flex-1 p-2">

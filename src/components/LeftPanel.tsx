@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import { useRepoStore } from "../stores/repoStore";
 
 interface SectionState {
@@ -87,7 +88,7 @@ function SectionHeader({
       className="flex h-7 cursor-pointer items-center gap-1.5 px-3 text-xs text-gb-text-muted hover:text-gb-text"
       onClick={onToggle}
     >
-      <span>{open ? "\u25BC" : "\u25B6"}</span>
+      {open ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
       <span className="font-semibold tracking-wider">{label}</span>
       <div className="mx-1 flex-1 border-t border-gb-border" />
       <span>{count}</span>

@@ -1,3 +1,4 @@
+import { Plus, HelpCircle } from "lucide-react";
 import { useRepoStore } from "../stores/repoStore";
 
 export default function TabBar() {
@@ -10,11 +11,11 @@ export default function TabBar() {
     <div className="flex h-9 items-center border-b border-gb-border bg-gb-toolbar px-3" data-tauri-drag-region>
       <span className="text-xs font-medium text-gb-accent">{name}</span>
       <div className="ml-2 flex h-6 w-6 cursor-pointer items-center justify-center rounded hover:bg-gb-hover">
-        <span className="text-gb-text-muted">+</span>
+        <Plus size={14} className="text-gb-text-muted" />
       </div>
       <div className="flex-1" />
       <div className="flex h-6 w-6 cursor-pointer items-center justify-center rounded hover:bg-gb-hover">
-        <span className="text-xs text-gb-text-muted">?</span>
+        <HelpCircle size={14} className="text-gb-text-muted" />
       </div>
     </div>
   );

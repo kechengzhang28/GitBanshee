@@ -7,7 +7,7 @@ function App() {
   const path = useRepoStore((s) => s.path);
 
   return (
-    <div className="h-screen bg-gb-bg">
+    <div className="h-screen overflow-hidden rounded-b-lg bg-gb-bg will-change-transform">
       {path ? <RepoView /> : <RepoList />}
     </div>
   );
