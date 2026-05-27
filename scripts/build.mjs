@@ -27,7 +27,7 @@ async function main() {
     env.PATH = vcPath;
   }
 
-  const child = spawn("npx", ["tauri", "dev"], {
+  const child = spawn("npx", ["tauri", "build"], {
     stdio: "inherit",
     env,
     shell: true,
@@ -39,6 +39,6 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error("Failed to start dev environment:", err.message);
+  console.error("Build failed:", err.message);
   process.exit(1);
 });

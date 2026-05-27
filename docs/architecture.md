@@ -34,21 +34,22 @@ GitBanshee is a Tauri v2 desktop application for Git repository visualization wi
 
 ```
 GitBanshee/
-├── ui/                       # React frontend
-│   ├── components/           # UI components per feature domain
-│   ├── hooks/                # Custom React hooks
-│   ├── stores/               # Zustand state stores
-│   ├── types/                # Shared TypeScript type definitions
-│   └── utils/                # Utility helpers
-├── engine/                   # Tauri Rust backend
+├── src/                       # React frontend
+│   ├── components/            # UI components per feature domain
+│   ├── stores/                # Zustand state stores
+│   ├── types/                 # Shared TypeScript type definitions
+│   ├── utils/                 # IPC wrappers, theme loader
+│   ├── i18n/                  # Internationalization
+│   └── themes/                # CSS variable theme files
+├── src-tauri/                 # Tauri Rust backend
 │   ├── src/
-│   │   ├── commands/         # IPC command handlers (invoke endpoints)
-│   │   ├── git/              # Git engine (libgit2 + CLI fallback)
-│   │   ├── ai/               # AI integration (dual-backend routing)
-│   │   └── models/           # Shared data models (serialized across IPC)
-│   ├── capabilities/         # Tauri v2 permission declarations
-│   └── tauri.conf.json       # App configuration
-└── docs/                     # Architecture documentation
+│   │   ├── commands/          # IPC command handlers (invoke endpoints)
+│   │   ├── git/               # Git engine (libgit2 + CLI fallback)
+│   │   └── models/            # Shared data models (serialized across IPC)
+│   ├── capabilities/          # Tauri v2 permission declarations
+│   └── tauri.conf.json        # App configuration
+├── scripts/                   # Cross-platform dev tooling
+└── docs/                      # Architecture documentation
 ```
 
 ## Key Architecture Decisions

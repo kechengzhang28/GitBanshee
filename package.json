@@ -5,17 +5,29 @@
   "type": "module",
   "scripts": {
     "dev": "node scripts/dev.mjs",
-    "dev:ui": "npm --prefix ui run dev",
-    "build": "npm --prefix ui run build",
-    "preview": "npm --prefix ui run preview",
-    "tauri:dev": "tauri dev --config engine/tauri.conf.json",
-    "tauri:build": "tauri build --config engine/tauri.conf.json",
-    "check:rs": "cargo check --manifest-path engine/Cargo.toml",
-    "check:ts": "npm --prefix ui run build",
+    "dev:ui": "vite",
+    "build": "node scripts/build.mjs",
+    "build:ui": "vite build",
+    "preview": "vite preview",
+    "check:rs": "cargo check --manifest-path src-tauri/Cargo.toml",
+    "check:ts": "tsc --noEmit",
     "check": "npm run check:ts && npm run check:rs"
   },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "zustand": "^5.0.13",
+    "@tauri-apps/api": "^2.11.0"
+  },
   "devDependencies": {
-    "@tauri-apps/api": "^2.11.0",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.16",
+    "typescript": "~5.6.2",
+    "vite": "^6.0.3",
     "@tauri-apps/cli": "^2.11.2",
     "@tauri-apps/plugin-dialog": "^2.7.1",
     "@tauri-apps/plugin-opener": "^2.5.4"
