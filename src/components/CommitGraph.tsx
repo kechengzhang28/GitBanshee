@@ -111,6 +111,13 @@ export default function CommitGraph() {
 
   const selectedHash = selectedCommit?.hash ?? null;
 
+  const handleRowWheel = useCallback((e: React.WheelEvent) => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollTop += e.deltaY;
+    if (e.shiftKey) el.scrollLeft += e.deltaY;
+  }, []);
+
   return (
     <div className="flex h-full w-full flex-col overflow-hidden bg-gb-bg">
       <div className="flex shrink-0 items-center border-b border-gb-border text-[11px] font-medium uppercase tracking-wider text-gb-text-muted"
@@ -162,13 +169,14 @@ export default function CommitGraph() {
           {visibleCommits.map(({ commit, top }) => (
             <div
               key={commit.hash}
-              className={`pointer-events-auto absolute left-0 right-0 cursor-pointer ${
+              className={`pointer-events-auto absolute cursor-pointer ${
                 commit.hash === selectedHash
                   ? "bg-white/[0.06]"
                   : "hover:bg-white/[0.04]"
               }`}
-              style={{ top, height: ROW_HEIGHT }}
+              style={{ top, height: ROW_HEIGHT, left: 0, right: 18 }}
               onClick={() => handleSelectCommit(commit)}
+              onWheel={handleRowWheel}
             />
           ))}
         </div>

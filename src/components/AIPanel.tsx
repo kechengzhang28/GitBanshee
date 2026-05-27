@@ -1,31 +1,21 @@
-import { useState } from "react";
-import { PanelRightOpen, PanelRightClose } from "lucide-react";
+import { PanelRightClose } from "lucide-react";
 
-export default function AIPanel() {
-  const [open, setOpen] = useState(false);
+interface Props {
+  open: boolean;
+  onToggle: () => void;
+}
 
-  if (!open) {
-    return (
-      <div className="flex h-full flex-col items-center border-l border-gb-border bg-gb-panel">
-        <button
-          onClick={() => setOpen(true)}
-          className="mt-2 flex h-5 w-5 items-center justify-center rounded text-xs text-gb-text-muted hover:bg-gb-hover"
-          title="Open AI Panel"
-        >
-          <PanelRightOpen size={14} />
-        </button>
-      </div>
-    );
-  }
+export default function AIPanel({ open, onToggle }: Props) {
+  if (!open) return null;
 
   return (
     <div className="flex h-full w-[200px] shrink-0 flex-col border-l border-gb-border bg-gb-panel">
-      <div className="flex h-8 items-center gap-1.5 border-b border-gb-border px-2.5">
-        <span className="text-xs font-semibold text-gb-warning">AI</span>
+      <div className="flex h-8 items-center border-b border-gb-border px-3">
+        <span className="text-xs font-semibold text-gb-text">AI</span>
         <div className="flex-1" />
         <button
-          onClick={() => setOpen(false)}
-          className="flex h-5 w-5 items-center justify-center rounded text-xs text-gb-text-muted hover:bg-gb-hover"
+          onClick={onToggle}
+          className="flex h-5 w-5 items-center justify-center rounded text-gb-text-muted hover:bg-gb-hover"
           title="Close AI Panel"
         >
           <PanelRightClose size={14} />

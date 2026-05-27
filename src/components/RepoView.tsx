@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useRepoStore } from "../stores/repoStore";
 import TabBar from "./TabBar";
 import RepoToolbar from "./RepoToolbar";
@@ -9,6 +10,9 @@ import StatusBar from "./StatusBar";
 
 export default function RepoView() {
   const error = useRepoStore((s) => s.error);
+  const [showLeft, setShowLeft] = useState(true);
+  const [showCommit, setShowCommit] = useState(true);
+  const [showAI, setShowAI] = useState(false);
 
   if (error) {
     return (
@@ -24,20 +28,33 @@ export default function RepoView() {
   return (
     <div className="flex h-full flex-col overflow-hidden bg-gb-bg">
       <TabBar />
-      <RepoToolbar />
+      <RepoToolbar
+        showLeft={showLeft}
+        showCommit={showCommit}
+        showAI={showAI}
+        onToggleLeft={() => setShowLeft((v) => !v)}
+        onToggleCommit={() => setShowCommit((v) => !v)}
+        onToggleAI={() => setShowAI((v) => !v)}
+      />
       <div className="flex flex-1 overflow-hidden">
-        <div className="w-[240px] shrink-0 overflow-hidden">
-          <LeftPanel />
-        </div>
+        {showLeft && (
+          <div className="w-[240px] shrink-0 overflow-hidden">
+            <LeftPanel />
+          </div>
+        )}
         <div className="flex-1 overflow-hidden">
           <CommitGraph />
         </div>
-        <div className="flex shrink-0 border-l border-gb-border">
-          <div className="w-[340px]">
-            <CommitDetails />
+        {(showCommit || showAI) && (
+          <div className="flex shrink-0 border-l border-gb-border">
+            {showCommit && (
+              <div className="w-[340px]">
+                <CommitDetails />
+              </div>
+            )}
+            {showAI && <AIPanel open={showAI} onToggle={() => setShowAI((v) => !v)} />}
           </div>
-          <AIPanel />
-        </div>
+        )}
       </div>
       <StatusBar />
     </div>

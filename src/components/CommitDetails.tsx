@@ -13,8 +13,8 @@ export default function CommitDetails() {
 
   return (
     <div className="flex h-full flex-col bg-gb-panel">
-      <div className="border-b border-gb-border bg-gb-toolbar px-3.5 py-2 text-xs font-medium text-gb-accent">
-        Commit Details
+      <div className="flex h-8 items-center border-b border-gb-border px-3">
+        <span className="text-xs font-semibold text-gb-text">Commit Details</span>
       </div>
       <div className="flex-1 overflow-auto p-3">
         <div className="space-y-2.5 text-xs">
