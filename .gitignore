@@ -1,2 +1,29 @@
 node_modules/
 dist/
+
+# Tauri
+engine/target/
+engine/gen/
+
+# Rust
+**/*.rs.bk
+*.pdb
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+
+# Build artifacts
+*.log
+*.dSYM
