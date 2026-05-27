@@ -15,8 +15,8 @@ export default function CommitGraph() {
   const overlayRef = useRef<HTMLDivElement>(null);
   const offsetRef = useRef(0);
   const loadingRef = useRef(false);
-  const [scrollTop, setScrollTop] = useState(0);
-  const [containerH, setContainerH] = useState(0);
+  const rafRef = useRef(0);
+  const [viewport, setViewport] = useState({ scrollTop: 0, containerH: 0 });
 
   const path = useRepoStore((s) => s.path);
   const commits = useRepoStore((s) => s.commits);
@@ -25,6 +25,10 @@ export default function CommitGraph() {
   const loadCommits = useRepoStore((s) => s.loadCommits);
   const loadBranches = useRepoStore((s) => s.loadBranches);
   const selectCommit = useRepoStore((s) => s.selectCommit);
+
+  const commitsLenRef = useRef(0);
+  commitsLenRef.current = commits.length;
+
   const loadMore = useCallback(async () => {
     if (!path || loadingRef.current) return;
     loadingRef.current = true;
@@ -32,6 +36,9 @@ export default function CommitGraph() {
     offsetRef.current += COMMIT_LIMIT;
     loadingRef.current = false;
   }, [path, loadCommits]);
+
+  const loadMoreRef = useRef(loadMore);
+  loadMoreRef.current = loadMore;
 
   useEffect(() => {
     if (path) {
@@ -43,29 +50,46 @@ export default function CommitGraph() {
 
   useEffect(() => {
     const el = overlayRef.current?.parentElement;
-    if (!el) return;
-    const obs = new ResizeObserver(([e]) => {
-      setContainerH(e.contentRect.height);
-    });
+    const sc = scrollRef.current;
+    if (!el || !sc) return;
+
+    let pendingH = 0;
+    let pendingST = 0;
+
+    const onResize = ([e]: ResizeObserverEntry[]) => {
+      pendingH = e.contentRect.height;
+      schedule();
+    };
+
+    const onScroll = () => {
+      pendingST = sc.scrollTop;
+      schedule();
+      const visibleBottom = sc.scrollTop + sc.clientHeight;
+      if (visibleBottom > commitsLenRef.current * ROW_HEIGHT - 400) {
+        loadMoreRef.current();
+      }
+    };
+
+    let scheduled = false;
+    const schedule = () => {
+      if (scheduled) return;
+      scheduled = true;
+      rafRef.current = requestAnimationFrame(() => {
+        scheduled = false;
+        setViewport({ scrollTop: pendingST, containerH: pendingH });
+      });
+    };
+
+    const obs = new ResizeObserver(onResize);
     obs.observe(el);
-    return () => obs.disconnect();
+    sc.addEventListener("scroll", onScroll, { passive: true });
+
+    return () => {
+      cancelAnimationFrame(rafRef.current);
+      obs.disconnect();
+      sc.removeEventListener("scroll", onScroll);
+    };
   }, []);
-
-  const handleScroll = useCallback(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    setScrollTop(el.scrollTop);
-    const visibleBottom = el.scrollTop + el.clientHeight;
-    const contentBottom = commits.length * ROW_HEIGHT;
-    if (visibleBottom > contentBottom - 400) loadMore();
-  }, [commits.length, loadMore]);
-
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    el.addEventListener("scroll", handleScroll, { passive: true });
-    return () => el.removeEventListener("scroll", handleScroll);
-  }, [handleScroll]);
 
   const handleSelectCommit = useCallback(
     (commit: import("../types").CommitNode | null) => {
@@ -91,9 +115,11 @@ export default function CommitGraph() {
     [commits],
   );
 
+  const { scrollTop, containerH } = viewport;
   const graphColW = Math.max(160, PADDING_X * 2 + maxLane * LANE_WIDTH);
-  const visibleRows = Math.ceil(containerH / ROW_HEIGHT) + 1;
-  const contentH = Math.max(commits.length * ROW_HEIGHT, containerH);
+  const visibleRows = containerH > 0 ? Math.ceil(containerH / ROW_HEIGHT) + 1 : 20;
+  const contentRows = commits.length * ROW_HEIGHT;
+  const contentH = contentRows > 0 ? contentRows + 1 : containerH;
 
   const visibleCommits = useMemo(() => {
     if (commits.length === 0) return [];
