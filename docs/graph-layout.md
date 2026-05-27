@@ -4,81 +4,32 @@
 
 A Git commit history is a **directed acyclic graph (DAG)**. Visualization maps this DAG onto a 2D grid:
 
-- **Y-axis** = time/topological order (newer commits at top, older at bottom)
-- **X-axis** = lanes, each active branch occupies one lane
+- **Y-axis** — time / topological order (newer commits at top, older at bottom)
+- **X-axis** — lanes, each active branch occupies one column
 
-## Algorithm: Lane Assignment
+## Lane Assignment Algorithm
 
-Based on Git's native `git log --graph` algorithm from `graph.c`, rewritten in Rust.
+Inspired by Git's own `git log --graph` output, the algorithm processes commits in reverse topological order (newest first) and assigns each commit to a lane column. The core challenge is minimizing lane count while ensuring no two simultaneous branches overlap visually.
 
-### Data Structures
+### Approach
 
-```rust
-// src-tauri/src/git/graph.rs
-pub struct GraphState {
-    pub nodes: Vec<CommitNode>,  // See git-engine.md for CommitNode definition
-    pub edges: Vec<Edge>,
-    pub max_lanes: u32,
-}
+1. Process commits newest-to-oldest.
+2. For each commit, determine its lane from its children's lane assignments — prefer reusing existing lanes to minimize column count.
+3. When a merge occurs (one commit reached by multiple parents), the outgoing lanes converge into a single lane after the merge point.
+4. When a branch diverges, a new lane is allocated and the old lane is freed once all commits on it have been processed.
+5. Row assignment is straightforward: the _i_-th commit in topological order gets row _i_.
 
-pub struct ColumnState {
-    pub active_columns: Vec<Column>,
-    pub column_mapping: Vec<Option<String>>,
-}
-
-pub struct Column {
-    pub id: u32,
-    pub color: u32,   // Palette index
-    pub commit_count: u32,
-}
-```
-
-### Algorithm Flow
-
-```
-Input: Topologically sorted commit list (newest → oldest)
-Output: (x=column, y=row, lane_count) for each commit
-
-1. Initialize:
-   - columns = [] (empty lane list)
-   - next_free_column = 0
-
-2. For each commit (newest to oldest):
-   a. Find the commit's child nodes (parents in git terms)
-   b. If the commit already has a lane assignment, keep it
-   c. If the commit has no lane:
-      - Among its children's lanes, pick the leftmost free lane
-      - If no free lane, allocate a new lane (next_free_column++)
-   d. For each child node:
-      - If child has no lane, occupy the current lane
-      - If the same child is referenced by multiple parents (merge scenario),
-        allocate a new lane
-   e. Release lanes that are no longer referenced:
-      - A lane is released once all children on that lane have been processed
-
-3. Y-axis assignment:
-   - The i-th commit (topological order) → y = i * ROW_HEIGHT
-```
-
-### Color Palette
-
-Each lane is assigned a color, cycling through a 12-color palette:
-
-```rust
-const LANE_COLORS: &[u32] = &[
-    0xE6194B, 0x3CB44B, 0xFFE119, 0x4363D8,
-    0xF58231, 0x911EB4, 0x42D4F4, 0xF032E6,
-    0xBFEF45, 0xFABED4, 0x469990, 0xDCBEFF,
-];
-```
+The result is a compact layout with no lane overlaps, where each branch trace is a continuous vertical or diagonal path.
 
 ## Canvas Rendering Strategy
 
-### Rendering Pipeline
+### Coordinate Flow
 
-```mermaid
-flowchart LR
-    A[CommitNode array] --> B[Viewport clipping] --> C[Canvas rendering]
+```
+Rust backend: computes (lane, row) per commit
+       → sends to frontend as x/y coordinates
+       → frontend applies zoom/pan transforms
+       → Canvas 2D draws visible commits only
 ```
 
 ### Render Layers (bottom to top)
@@ -94,48 +45,29 @@ flowchart TD
     end
 ```
 
-1. **Background lines**: a dotted vertical line per lane as branch trace
-2. **Connecting lines**: bezier curves between parent and child
-3. **Nodes**: commit dots (circles), colored by lane
-4. **Labels**: branch names, tag names (next to corresponding commit)
-5. **Selection highlight**: glow ring around the currently selected commit
+1. **Background lines** — dotted vertical per lane
+2. **Connecting lines** — bezier curves (straight within lane, curved across lanes)
+3. **Nodes** — filled circles, color-coded by lane
+4. **Labels** — branch/tag names adjacent to commits
+5. **Selection highlight** — glow ring on selected commit
 
-### Edge Drawing
+### Color Palette
 
-```
-parent (x1, y1) → child (x2, y2)
-
-When x1 == x2 (same lane):
-  Straight line connection
-
-When x1 != x2 (across lanes):
-  Cubic bezier curve
-  Control points: (x1, (y1+y2)/2), (x2, (y1+y2)/2)
-```
+Each branch lane is assigned a color from a cycling palette to visually distinguish parallel lines of development. The palette is chosen for good contrast against both light and dark backgrounds.
 
 ### Virtual Scrolling
 
-```typescript
-const VISIBLE_RANGE = {
-  start: Math.floor(scrollTop / ROW_HEIGHT),
-  end: Math.ceil((scrollTop + viewportHeight) / ROW_HEIGHT),
-}
-
-const visibleCommits = commits.slice(
-  Math.max(0, VISIBLE_RANGE.start - OVERSACAN),
-  Math.min(commits.length, VISIBLE_RANGE.end + OVERSACAN),
-)
-```
+Only commits within the viewport (plus a small overscan buffer above and below) are drawn. The visible range is recomputed on each scroll frame. Combined with Canvas rendering (no DOM nodes per commit), this enables smooth 60fps scrolling even for repositories with 100K+ commits.
 
 ## Interactions
 
-| Interaction | Implementation |
-|-------------|----------------|
-| Scroll | Virtual scrolling + Canvas translate |
-| Zoom | Canvas scale + adjust ROW_HEIGHT |
-| Select commit | Canvas hit test (reverse coordinate calculation) |
-| Hover highlight | mousemove → nearest node → highlight entire branch line |
-| Pan/drag | Canvas translate + boundary clamping |
+| Interaction | Description |
+|-------------|-------------|
+| Scroll | Virtual scrolling with Canvas translate |
+| Zoom | Canvas scale transform; row height adjusts proportionally |
+| Select commit | Reverse hit-test from pixel coordinates to commit node |
+| Hover highlight | Highlight the entire branch line connected to the hovered commit |
+| Pan/Drag | Canvas translate with boundary clamping |
 
 ## Performance Targets
 
