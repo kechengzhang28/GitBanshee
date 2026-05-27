@@ -2,24 +2,7 @@
 
 A Git visualization desktop app with native AI integration, built with Tauri v2 + React + Rust.
 
-## Quick Start
-
-```bash
-# Install dependencies
-npm install
-npm --prefix ui install
-
-# Development (run in PowerShell with VC environment)
-npm run tauri dev
-
-# Frontend only
-npm run dev
-```
-
-**Prerequisites:**
-- Node.js 22+
-- Rust 1.95+ (via [rustup](https://rustup.rs))
-- [Visual Studio Build Tools](https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2022) with C++ workload (Windows only)
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and workflow.
 
 ## Documentation
 

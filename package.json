@@ -4,10 +4,12 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite --config ui/vite.config.ts",
+    "dev": "node scripts/dev.mjs",
+    "dev:ui": "npm --prefix ui run dev",
     "build": "npm --prefix ui run build",
-    "preview": "vite preview --config ui/vite.config.ts",
-    "tauri": "tauri --config engine/tauri.conf.json",
+    "preview": "npm --prefix ui run preview",
+    "tauri:dev": "tauri dev --config engine/tauri.conf.json",
+    "tauri:build": "tauri build --config engine/tauri.conf.json",
     "check:rs": "cargo check --manifest-path engine/Cargo.toml",
     "check:ts": "npm --prefix ui run build",
     "check": "npm run check:ts && npm run check:rs"
