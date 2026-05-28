@@ -19,6 +19,7 @@ function BranchColumn({ scrollTop, visibleRows, commits }: BranchColumnProps) {
         visibleRows={visibleRows}
         getKey={(c) => c.hash}
         renderItem={(c) => {
+          if (!c.branches || c.branches.length === 0) return null;
           const color = BRANCH_COLORS[c.lane % BRANCH_COLORS.length];
           return (
             <div className="flex h-full items-center gap-1 px-2">
@@ -30,7 +31,7 @@ function BranchColumn({ scrollTop, visibleRows, commits }: BranchColumnProps) {
                 className="truncate text-xs leading-[32px]"
                 style={{ color }}
               >
-                {c.short_hash}
+                {c.branch_to_display}
               </span>
             </div>
           );

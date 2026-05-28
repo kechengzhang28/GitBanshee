@@ -8,6 +8,8 @@ export interface CommitNode {
   parents: string[];
   lane: number;
   row: number;
+  branches: string[];
+  branch_to_display: string;
 }
 
 export interface GraphPoint {

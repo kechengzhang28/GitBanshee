@@ -1,4 +1,5 @@
 use crate::models::{CommitNode, GraphData, Link, Path, Point};
+use std::collections::HashMap;
 
 const PALETTE: [&str; 6] = ["#58a6ff", "#3fb950", "#d29922", "#a371f7", "#f85149", "#39d353"];
 const PALETTE_LEN: usize = PALETTE.len();
@@ -192,4 +193,30 @@ pub fn compute_graph_layout(commits: &mut [CommitNode]) -> GraphData {
     }
 
     GraphData { paths, links }
+}
+
+pub fn assign_decorators(commits: &mut [CommitNode], decorators: &HashMap<String, Vec<String>>) {
+    for commit in commits.iter_mut() {
+        if let Some(names) = decorators.get(&commit.hash) {
+            commit.branches = names.clone();
+            commit.branch_to_display = names
+                .first()
+                .map(|n| ref_display_name(n))
+                .unwrap_or_default();
+        }
+    }
+}
+
+fn ref_display_name(full: &str) -> String {
+    if let Some(name) = full.strip_prefix("refs/heads/") {
+        name.to_string()
+    } else if let Some(name) = full.strip_prefix("refs/tags/") {
+        format!("tag: {}", name)
+    } else if let Some(name) = full.strip_prefix("refs/remotes/") {
+        name.to_string()
+    } else if full == "HEAD" {
+        "HEAD".to_string()
+    } else {
+        full.to_string()
+    }
 }
