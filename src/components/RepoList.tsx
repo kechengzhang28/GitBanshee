@@ -1,5 +1,6 @@
 import { open } from "@tauri-apps/plugin-dialog";
 import { useRepoStore } from "../stores/repoStore";
+import Button from "./ui/Button";
 
 export default function RepoList() {
   const openRepo = useRepoStore((s) => s.openRepo);
@@ -16,12 +17,9 @@ export default function RepoList() {
       <div className="flex flex-col items-center gap-4">
         <h1 className="text-2xl font-bold text-gb-accent">GitBanshee</h1>
         <p className="text-gb-text-sec">Open a Git repository to visualize its commit history</p>
-        <button
-          onClick={handleOpen}
-          className="rounded-lg bg-gb-accent px-6 py-2.5 font-medium text-white hover:brightness-110"
-        >
+        <Button variant="primary" size="md" onClick={handleOpen}>
           Open Repository
-        </button>
+        </Button>
       </div>
     </div>
   );

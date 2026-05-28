@@ -5,7 +5,7 @@ import RepoToolbar from "./RepoToolbar";
 import LeftPanel from "./LeftPanel";
 import CommitGraph from "./CommitGraph";
 import CommitDetails from "./CommitDetails";
-import AIPanel from "./AIPanel";
+import AIPanel from "./ai/AIPanel";
 import StatusBar from "./StatusBar";
 
 export default function RepoView() {

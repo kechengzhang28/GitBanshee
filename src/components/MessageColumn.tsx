@@ -1,8 +1,7 @@
 import { memo } from "react";
 import type { CommitNode } from "../types";
 import VirtualList from "./VirtualList";
-
-const ROW_HEIGHT = 32;
+import { ROW_HEIGHT } from "./constants";
 
 interface MessageColumnProps {
   scrollTop: number;
@@ -21,7 +20,7 @@ function MessageColumn({ scrollTop, visibleRows, commits }: MessageColumnProps) 
         getKey={(c) => c.hash}
         renderItem={(c) => (
           <div className="flex h-full items-center px-3">
-            <span className="truncate text-[13px] leading-[32px] text-gb-text">
+            <span className="truncate text-sm leading-[32px] text-gb-text">
               {c.message.split("\n")[0]}
             </span>
           </div>

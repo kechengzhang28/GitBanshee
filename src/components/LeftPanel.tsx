@@ -23,7 +23,7 @@ export default function LeftPanel() {
 
   useEffect(() => {
     if (path) loadBranches();
-  }, [path]);
+  }, [path, loadBranches]);
 
   const localBranches = branches.filter((b) => !b.upstream || b.upstream === "");
   const remoteBranches = branches.filter((b) => b.upstream && b.upstream !== "");

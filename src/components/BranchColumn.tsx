@@ -1,11 +1,7 @@
 import { memo } from "react";
 import type { BranchInfo, CommitNode } from "../types";
 import VirtualList from "./VirtualList";
-
-const ROW_HEIGHT = 32;
-const BRANCH_COLORS = [
-  "#58a6ff", "#3fb950", "#d29922", "#a371f7", "#f85149", "#39d353",
-];
+import { ROW_HEIGHT, BRANCH_COLORS } from "./constants";
 
 interface BranchColumnProps {
   scrollTop: number;

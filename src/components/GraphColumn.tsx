@@ -1,15 +1,6 @@
 import { useEffect, useRef, useCallback, memo } from "react";
 import { useRepoStore } from "../stores/repoStore";
-
-const ROW_HEIGHT = 32;
-const LANE_WIDTH = 24;
-const NODE_RADIUS = 5;
-const PADDING_X = 28;
-const OVERSHOT_ROWS = 20;
-
-const BRANCH_COLORS = [
-  "#58a6ff", "#3fb950", "#d29922", "#a371f7", "#f85149", "#39d353",
-];
+import { ROW_HEIGHT, LANE_WIDTH, NODE_RADIUS, PADDING_X, OVERSHOT_ROWS, BRANCH_COLORS } from "./constants";
 
 interface GraphColumnProps {
   scrollTop: number;

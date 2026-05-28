@@ -1,14 +1,11 @@
 import { useEffect, useRef, useCallback, useMemo, useState } from "react";
 import { useRepoStore } from "../stores/repoStore";
-import type { BranchInfo } from "../types";
+import type { BranchInfo, CommitNode } from "../types";
 import BranchColumn from "./BranchColumn";
 import GraphColumn from "./GraphColumn";
 import MessageColumn from "./MessageColumn";
 
-const ROW_HEIGHT = 32;
-const LANE_WIDTH = 24;
-const PADDING_X = 28;
-const COMMIT_LIMIT = 500;
+import { ROW_HEIGHT, LANE_WIDTH, PADDING_X, COMMIT_LIMIT } from "./constants";
 
 export default function CommitGraph() {
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -46,7 +43,7 @@ export default function CommitGraph() {
       loadMore();
       loadBranches();
     }
-  }, [path]);
+  }, [path, loadMore, loadBranches]);
 
   useEffect(() => {
     const el = overlayRef.current?.parentElement;
@@ -92,7 +89,7 @@ export default function CommitGraph() {
   }, []);
 
   const handleSelectCommit = useCallback(
-    (commit: import("../types").CommitNode | null) => {
+    (commit: CommitNode | null) => {
       selectCommit(commit);
     },
     [selectCommit],
@@ -146,7 +143,7 @@ export default function CommitGraph() {
 
   return (
     <div className="flex h-full w-full flex-col overflow-hidden bg-gb-bg">
-      <div className="flex shrink-0 items-center border-b border-gb-border text-[11px] font-medium uppercase tracking-wider text-gb-text-muted"
+      <div className="flex shrink-0 items-center border-b border-gb-border text-xs font-medium uppercase tracking-wider text-gb-text-muted"
         style={{ height: 28, lineHeight: "28px" }}>
         <div className="shrink-0 border-r border-gb-border pl-3" style={{ width: 144, height: "100%" }}>
           Branch / Tag
@@ -197,8 +194,8 @@ export default function CommitGraph() {
               key={commit.hash}
               className={`pointer-events-auto absolute cursor-pointer ${
                 commit.hash === selectedHash
-                  ? "bg-white/[0.06]"
-                  : "hover:bg-white/[0.04]"
+                  ? "bg-gb-hover"
+                  : "hover:bg-gb-hover"
               }`}
               style={{ top, height: ROW_HEIGHT, left: 0, right: 18 }}
               onClick={() => handleSelectCommit(commit)}
