@@ -11,4 +11,6 @@ pub struct CommitNode {
     pub parents: Vec<String>,
     pub lane: usize,
     pub row: usize,
+    pub branches: Vec<String>,
+    pub branch_to_display: String,
 }

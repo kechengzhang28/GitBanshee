@@ -1,9 +1,9 @@
 use crate::git::engine;
-use crate::models::{BranchInfo, CommitNode, DiffContent};
+use crate::models::{BranchInfo, CommitNode, DiffContent, GraphData};
 use serde::{Deserialize, Serialize};
 use std::sync::Mutex;
 
-pub struct CommitCache(pub Mutex<Option<Vec<CommitNode>>>);
+pub struct CommitCache(pub Mutex<Option<(Vec<CommitNode>, GraphData)>>);
 
 impl CommitCache {
     pub fn new() -> Self {
@@ -25,6 +25,7 @@ pub struct OpenRepoResult {
 #[derive(Serialize)]
 pub struct GetCommitsResponse {
     pub commits: Vec<CommitNode>,
+    pub graph_data: GraphData,
 }
 
 #[tauri::command]
@@ -47,27 +48,30 @@ pub fn get_commits(
     offset: usize,
     limit: usize,
 ) -> Result<GetCommitsResponse, String> {
-    let page;
-
     {
         let cached = cache.0.lock().unwrap();
-        if let Some(all) = cached.as_ref() {
+        if let Some((all, graph_data)) = cached.as_ref() {
             let start = offset.min(all.len());
             let end = (offset + limit).min(all.len());
-            page = all[start..end].to_vec();
-            return Ok(GetCommitsResponse { commits: page });
+            return Ok(GetCommitsResponse {
+                commits: all[start..end].to_vec(),
+                graph_data: graph_data.clone(),
+            });
         }
     }
 
     let repo = engine::open_repo(&path).map_err(|e| e.to_string())?;
-    let all = engine::get_all_commits(&repo).map_err(|e| e.to_string())?;
+    let (all, graph_data) = engine::get_all_commits(&repo).map_err(|e| e.to_string())?;
 
     let start = offset.min(all.len());
     let end = (offset + limit).min(all.len());
-    page = all[start..end].to_vec();
+    let page = all[start..end].to_vec();
 
-    *cache.0.lock().unwrap() = Some(all);
-    Ok(GetCommitsResponse { commits: page })
+    *cache.0.lock().unwrap() = Some((all, graph_data.clone()));
+    Ok(GetCommitsResponse {
+        commits: page,
+        graph_data,
+    })
 }
 
 #[tauri::command]

@@ -1,5 +1,5 @@
 import { memo } from "react";
-import type { BranchInfo, CommitNode } from "../types";
+import type { CommitNode } from "../types";
 import VirtualList from "./VirtualList";
 import { ROW_HEIGHT, BRANCH_COLORS } from "./constants";
 
@@ -7,10 +7,9 @@ interface BranchColumnProps {
   scrollTop: number;
   visibleRows: number;
   commits: CommitNode[];
-  branchMap: Map<string, BranchInfo[]>;
 }
 
-function BranchColumn({ scrollTop, visibleRows, commits, branchMap }: BranchColumnProps) {
+function BranchColumn({ scrollTop, visibleRows, commits }: BranchColumnProps) {
   return (
     <div className="relative shrink-0 overflow-hidden" style={{ width: 144, height: "100%" }}>
       <VirtualList
@@ -20,8 +19,6 @@ function BranchColumn({ scrollTop, visibleRows, commits, branchMap }: BranchColu
         visibleRows={visibleRows}
         getKey={(c) => c.hash}
         renderItem={(c) => {
-          const branches = branchMap.get(c.hash);
-          if (!branches || branches.length === 0) return null;
           const color = BRANCH_COLORS[c.lane % BRANCH_COLORS.length];
           return (
             <div className="flex h-full items-center gap-1 px-2">
@@ -31,12 +28,9 @@ function BranchColumn({ scrollTop, visibleRows, commits, branchMap }: BranchColu
               />
               <span
                 className="truncate text-xs leading-[32px]"
-                style={{
-                  color,
-                  fontWeight: branches.some((b) => b.is_head) ? 600 : 400,
-                }}
+                style={{ color }}
               >
-                {branches[0].name}
+                {c.short_hash}
               </span>
             </div>
           );

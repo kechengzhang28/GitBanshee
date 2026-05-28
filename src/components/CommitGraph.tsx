@@ -1,6 +1,6 @@
 import { useEffect, useRef, useCallback, useMemo, useState } from "react";
 import { useRepoStore } from "../stores/repoStore";
-import type { BranchInfo, CommitNode } from "../types";
+import type { CommitNode } from "../types";
 import BranchColumn from "./BranchColumn";
 import GraphColumn from "./GraphColumn";
 import MessageColumn from "./MessageColumn";
@@ -21,7 +21,6 @@ export default function CommitGraph({ zoomLevel = 1, onZoomChange }: Props) {
 
   const path = useRepoStore((s) => s.path);
   const commits = useRepoStore((s) => s.commits);
-  const branches = useRepoStore((s) => s.branches);
   const selectedCommit = useRepoStore((s) => s.selectedCommit);
   const loadCommits = useRepoStore((s) => s.loadCommits);
   const loadBranches = useRepoStore((s) => s.loadBranches);
@@ -99,18 +98,6 @@ export default function CommitGraph({ zoomLevel = 1, onZoomChange }: Props) {
     [selectCommit],
   );
 
-  const branchMap = useMemo(() => {
-    const map = new Map<string, BranchInfo[]>();
-    for (const b of branches) {
-      if (b.target_commit) {
-        const list = map.get(b.target_commit) || [];
-        list.push(b);
-        map.set(b.target_commit, list);
-      }
-    }
-    return map;
-  }, [branches]);
-
   const maxLane = useMemo(
     () => Math.max(1, ...commits.map((c) => c.lane + 1)),
     [commits],
@@ -151,7 +138,7 @@ export default function CommitGraph({ zoomLevel = 1, onZoomChange }: Props) {
       <div className="flex shrink-0 items-center border-b border-gb-border text-xs font-medium uppercase tracking-wider text-gb-text-muted"
         style={{ height: 28, lineHeight: "28px" }}>
         <div className="shrink-0 border-r border-gb-border pl-3" style={{ width: 144, height: "100%" }}>
-          Branch / Tag
+          Branch
         </div>
         <div
           className="shrink-0 border-r border-gb-border pl-2"
@@ -188,7 +175,6 @@ export default function CommitGraph({ zoomLevel = 1, onZoomChange }: Props) {
               scrollTop={scrollTop}
               visibleRows={visibleRows}
               commits={commits}
-              branchMap={branchMap}
             />
             <GraphColumn
               scrollTop={scrollTop}

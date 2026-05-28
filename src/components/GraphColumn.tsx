@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback, useMemo, memo } from "react";
+import { useEffect, useRef, useCallback, memo } from "react";
 import { useRepoStore } from "../stores/repoStore";
 import { ROW_HEIGHT, LANE_WIDTH, NODE_RADIUS, PADDING_X, OVERSHOT_ROWS, BRANCH_COLORS } from "./constants";
 
@@ -13,15 +13,8 @@ function GraphColumn({ scrollTop, colWidth, zoomLevel = 1 }: GraphColumnProps) {
   const rafRef = useRef(0);
 
   const commits = useRepoStore((s) => s.commits);
+  const graphData = useRepoStore((s) => s.graphData);
   const selectedCommit = useRepoStore((s) => s.selectedCommit);
-
-  const hashToRow = useMemo(() => {
-    const m = new Map<string, number>();
-    for (let i = 0; i < commits.length; i++) {
-      m.set(commits[i].hash, i);
-    }
-    return m;
-  }, [commits]);
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -63,53 +56,73 @@ function GraphColumn({ scrollTop, colWidth, zoomLevel = 1 }: GraphColumnProps) {
     const color = (lane: number) => BRANCH_COLORS[lane % BRANCH_COLORS.length];
 
     try {
-      // Layer 1: per-parent-child-pair connecting lines
-      // Iterate from 0 to capture children above the visible range
-      // whose parent is within the visible range
-      ctx.lineWidth = lineW;
-      for (let i = 0; i < lastRow; i++) {
-        const c = commits[i];
-        if (!c) continue;
-        const sx = laneX(c.lane);
-        const sy = rowY(i) + r;
+      // Layer 1: Paths (branch connecting lines)
+      if (graphData) {
+        ctx.lineWidth = lineW;
+        for (const path of graphData.paths) {
+          if (path.points.length < 2) continue;
 
-        for (const parentHash of c.parents) {
-          const parentRow = hashToRow.get(parentHash);
-          let tx: number;
-          let ty: number;
-          let pr: number;
+          // Check if path overlaps visible range
+          const pathStart = path.points[0].row;
+          const pathEnd = path.points[path.points.length - 1].row;
+          if (pathEnd < firstRow || pathStart > lastRow) continue;
 
-          if (parentRow !== undefined) {
-            if (i >= parentRow) continue;
-            pr = parentRow;
-            if (pr < firstRow) continue;
-            const pp = commits[parentRow];
-            if (!pp) continue;
-            tx = laneX(pp.lane);
-            ty = rowY(parentRow) - r;
-          } else {
-            pr = lastRow;
-            tx = laneX(c.lane);
-            ty = rowY(lastRow) + ROW_HEIGHT;
-          }
-
-          ctx.strokeStyle = color(c.lane);
+          ctx.strokeStyle = path.color;
           ctx.beginPath();
-          if (tx === sx) {
-            ctx.moveTo(sx, sy);
-            ctx.lineTo(tx, ty);
-          } else {
-            const midY = (sy + ty) / 2;
-            ctx.moveTo(sx, sy);
-            ctx.lineTo(sx, midY);
-            ctx.lineTo(tx, midY);
-            ctx.lineTo(tx, ty);
+          let started = false;
+
+          for (let i = 0; i < path.points.length; i++) {
+            const p = path.points[i];
+
+            if (i === 0) {
+              const x0 = laneX(p.lane);
+              const y0 = rowY(p.row);
+              ctx.moveTo(x0, y0);
+              started = true;
+              continue;
+            }
+
+            const prev = path.points[i - 1];
+            const x0 = laneX(prev.lane);
+            const y0 = rowY(prev.row);
+            const x1 = laneX(p.lane);
+            const y1 = rowY(p.row);
+
+            if (prev.lane === p.lane) {
+              ctx.lineTo(x1, y1);
+            } else {
+              const midY = (y0 + y1) / 2;
+              ctx.bezierCurveTo(x0, midY, x1, midY, x1, y1);
+            }
           }
+
+          if (started) {
+            ctx.stroke();
+          }
+        }
+
+        // Layer 2: Links (merge arcs)
+        for (const link of graphData.links) {
+          const linkStartRow = link.start.row;
+          const linkEndRow = link.end.row;
+          if (linkStartRow < firstRow && linkEndRow < firstRow) continue;
+          if (linkStartRow > lastRow && linkEndRow > lastRow) continue;
+
+          ctx.strokeStyle = link.color;
+          ctx.beginPath();
+          const sx = laneX(link.start.lane);
+          const sy = rowY(link.start.row);
+          const cx = laneX(link.control.lane);
+          const cy = rowY(link.control.row);
+          const ex = laneX(link.end.lane);
+          const ey = rowY(link.end.row);
+          ctx.moveTo(sx, sy);
+          ctx.quadraticCurveTo(cx, cy, ex, ey);
           ctx.stroke();
         }
       }
 
-      // Layer 2: nodes
+      // Layer 3: Nodes
       for (let i = firstRow; i < lastRow; i++) {
         const c = commits[i];
         if (!c) continue;
@@ -135,7 +148,7 @@ function GraphColumn({ scrollTop, colWidth, zoomLevel = 1 }: GraphColumnProps) {
     } catch { /* skip frame */ }
 
     rafRef.current = requestAnimationFrame(draw);
-  }, [commits, hashToRow, selectedCommit, scrollTop, zoomLevel]);
+  }, [commits, graphData, selectedCommit, scrollTop, zoomLevel]);
 
   useEffect(() => {
     rafRef.current = requestAnimationFrame(draw);

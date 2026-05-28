@@ -10,6 +10,28 @@ export interface CommitNode {
   row: number;
 }
 
+export interface GraphPoint {
+  lane: number;
+  row: number;
+}
+
+export interface PathData {
+  points: GraphPoint[];
+  color: string;
+}
+
+export interface LinkData {
+  start: GraphPoint;
+  control: GraphPoint;
+  end: GraphPoint;
+  color: string;
+}
+
+export interface GraphData {
+  paths: PathData[];
+  links: LinkData[];
+}
+
 export interface BranchInfo {
   name: string;
   is_head: boolean;
