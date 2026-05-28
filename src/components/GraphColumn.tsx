@@ -75,17 +75,16 @@ function GraphColumn({ scrollTop, colWidth, zoomLevel = 1 }: GraphColumnProps) {
           ctx.beginPath();
 
           if (c.lane === pp.lane) {
-            // Same lane: vertical line
-            ctx.moveTo(cx, cy + r);
-            ctx.lineTo(px, py - r);
+            ctx.moveTo(cx, cy);
+            ctx.lineTo(px, py);
           } else if (px > cx) {
-            ctx.moveTo(cx, cy + r);
-            ctx.lineTo(px, cy + r);
-            ctx.lineTo(px, py - r);
+            ctx.moveTo(cx, cy);
+            ctx.lineTo(px, cy);
+            ctx.lineTo(px, py);
           } else {
-            ctx.moveTo(cx, cy + r);
-            ctx.lineTo(cx, py - r);
-            ctx.lineTo(px, py - r);
+            ctx.moveTo(cx, cy);
+            ctx.lineTo(cx, py);
+            ctx.lineTo(px, py);
           }
 
           ctx.stroke();
