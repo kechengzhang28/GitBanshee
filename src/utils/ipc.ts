@@ -1,5 +1,12 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { BranchInfo, CommitNode, DiffContent, OpenRepoResult } from "../types";
+import type {
+  BranchInfo,
+  CommitNode,
+  CommitResult,
+  DiffContent,
+  OpenRepoResult,
+  StatusEntry,
+} from "../types";
 
 export async function openRepo(path: string): Promise<OpenRepoResult> {
   return invoke<OpenRepoResult>("open_repo", { path });
@@ -22,4 +29,62 @@ export async function getCommitDiff(
   hash: string,
 ): Promise<DiffContent> {
   return invoke<DiffContent>("get_commit_diff", { path, hash });
+}
+
+export async function getStatus(path: string): Promise<StatusEntry[]> {
+  return invoke<StatusEntry[]>("get_status", { path });
+}
+
+export async function stageFile(
+  path: string,
+  filePath: string,
+): Promise<void> {
+  return invoke("stage_file", { path, filePath });
+}
+
+export async function unstageFile(
+  path: string,
+  filePath: string,
+): Promise<void> {
+  return invoke("unstage_file", { path, filePath });
+}
+
+export async function stageAll(path: string): Promise<void> {
+  return invoke("stage_all", { path });
+}
+
+export async function createCommit(
+  path: string,
+  message: string,
+  amend: boolean,
+): Promise<CommitResult> {
+  return invoke<CommitResult>("create_commit", { path, message, amend });
+}
+
+export async function createBranch(
+  path: string,
+  name: string,
+): Promise<void> {
+  return invoke("create_branch", { path, name });
+}
+
+export async function deleteBranch(
+  path: string,
+  name: string,
+): Promise<void> {
+  return invoke("delete_branch", { path, name });
+}
+
+export async function checkoutBranch(
+  path: string,
+  name: string,
+): Promise<void> {
+  return invoke("checkout_branch", { path, name });
+}
+
+export async function checkoutCommit(
+  path: string,
+  hash: string,
+): Promise<void> {
+  return invoke("checkout_commit", { path, hash });
 }

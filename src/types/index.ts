@@ -46,3 +46,13 @@ export interface DiffLine {
   old_lineno: number | null;
   new_lineno: number | null;
 }
+
+export interface StatusEntry {
+  path: string;
+  status: string;
+}
+
+export interface CommitResult {
+  hash: string;
+  short_hash: string;
+}

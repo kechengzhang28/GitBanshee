@@ -164,3 +164,50 @@ pub fn get_commit_diff(repo: &Repository, hash: &str) -> Result<DiffContent, git
 
     Ok(DiffContent { files })
 }
+
+pub fn create_commit(
+    repo: &Repository,
+    message: &str,
+    amend: bool,
+) -> Result<git2::Oid, git2::Error> {
+    let sig = repo.signature()?;
+    let mut index = repo.index()?;
+    let tree_oid = index.write_tree()?;
+    let tree = repo.find_tree(tree_oid)?;
+
+    if amend {
+        let head = repo.head()?.peel_to_commit()?;
+        let parents: Vec<git2::Commit> = head.parents().collect();
+        let parent_refs: Vec<&git2::Commit> = parents.iter().collect();
+        let oid = repo.commit(
+            Some("HEAD"),
+            &sig,
+            &sig,
+            message,
+            &tree,
+            &parent_refs,
+        )?;
+        Ok(oid)
+    } else if let Ok(head) = repo.head() {
+        if let Ok(parent) = head.peel_to_commit() {
+            let oid = repo.commit(Some("HEAD"), &sig, &sig, message, &tree, &[&parent])?;
+            return Ok(oid);
+        }
+        let oid = repo.commit(Some("HEAD"), &sig, &sig, message, &tree, &[])?;
+        Ok(oid)
+    } else {
+        let oid = repo.commit(Some("HEAD"), &sig, &sig, message, &tree, &[])?;
+        Ok(oid)
+    }
+}
+
+pub fn checkout_commit(repo: &Repository, hash: &str) -> Result<(), git2::Error> {
+    let oid =
+        git2::Oid::from_str(hash).map_err(|e| git2::Error::from_str(&e.to_string()))?;
+    let commit = repo.find_commit(oid)?;
+    let mut opts = git2::build::CheckoutBuilder::new();
+    opts.force();
+    repo.checkout_tree(commit.as_object(), Some(&mut opts))?;
+    repo.set_head_detached(oid)?;
+    Ok(())
+}

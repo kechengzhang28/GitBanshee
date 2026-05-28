@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { BranchInfo, CommitNode } from "../types";
+import type { BranchInfo, CommitNode, StatusEntry } from "../types";
 import * as ipc from "../utils/ipc";
 
 interface RepoState {
@@ -8,6 +8,8 @@ interface RepoState {
   commits: CommitNode[];
   selectedCommit: CommitNode | null;
   commitCount: number;
+  status: StatusEntry[];
+  loadingStatus: boolean;
   error: string | null;
 
   openRepo: (path: string) => Promise<void>;
@@ -15,6 +17,16 @@ interface RepoState {
   loadBranches: () => Promise<void>;
   selectCommit: (commit: CommitNode | null) => void;
   closeRepo: () => void;
+
+  loadStatus: () => Promise<void>;
+  stageFile: (filePath: string) => Promise<void>;
+  unstageFile: (filePath: string) => Promise<void>;
+  stageAll: () => Promise<void>;
+  createCommit: (message: string, amend: boolean) => Promise<void>;
+  createBranch: (name: string) => Promise<void>;
+  deleteBranch: (name: string) => Promise<void>;
+  checkoutBranch: (name: string) => Promise<void>;
+  checkoutCommit: (hash: string) => Promise<void>;
 }
 
 export const useRepoStore = create<RepoState>((set, get) => ({
@@ -23,6 +35,8 @@ export const useRepoStore = create<RepoState>((set, get) => ({
   commits: [],
   selectedCommit: null,
   commitCount: 0,
+  status: [],
+  loadingStatus: false,
   error: null,
 
   openRepo: async (path: string) => {
@@ -59,7 +73,120 @@ export const useRepoStore = create<RepoState>((set, get) => ({
       commits: [],
       selectedCommit: null,
       commitCount: 0,
+      status: [],
       error: null,
     });
+  },
+
+  loadStatus: async () => {
+    const { path } = get();
+    if (!path) return;
+    set({ loadingStatus: true });
+    try {
+      const status = await ipc.getStatus(path);
+      set({ status, error: null });
+    } catch (e) {
+      set({ error: String(e) });
+    } finally {
+      set({ loadingStatus: false });
+    }
+  },
+
+  stageFile: async (filePath: string) => {
+    const { path } = get();
+    if (!path) return;
+    try {
+      await ipc.stageFile(path, filePath);
+      await get().loadStatus();
+    } catch (e) {
+      set({ error: String(e) });
+    }
+  },
+
+  unstageFile: async (filePath: string) => {
+    const { path } = get();
+    if (!path) return;
+    try {
+      await ipc.unstageFile(path, filePath);
+      await get().loadStatus();
+    } catch (e) {
+      set({ error: String(e) });
+    }
+  },
+
+  stageAll: async () => {
+    const { path } = get();
+    if (!path) return;
+    try {
+      await ipc.stageAll(path);
+      await get().loadStatus();
+    } catch (e) {
+      set({ error: String(e) });
+    }
+  },
+
+  createCommit: async (message: string, amend: boolean) => {
+    const { path } = get();
+    if (!path) return;
+    try {
+      await ipc.createCommit(path, message, amend);
+      await get().loadStatus();
+      await get().loadBranches();
+      // Reload commits from scratch after creating one
+      set({ commits: [] });
+      await get().loadCommits(0, 500);
+    } catch (e) {
+      set({ error: String(e) });
+    }
+  },
+
+  createBranch: async (name: string) => {
+    const { path } = get();
+    if (!path) return;
+    try {
+      await ipc.createBranch(path, name);
+      await get().loadBranches();
+    } catch (e) {
+      set({ error: String(e) });
+    }
+  },
+
+  deleteBranch: async (name: string) => {
+    const { path } = get();
+    if (!path) return;
+    try {
+      await ipc.deleteBranch(path, name);
+      await get().loadBranches();
+    } catch (e) {
+      set({ error: String(e) });
+    }
+  },
+
+  checkoutBranch: async (name: string) => {
+    const { path } = get();
+    if (!path) return;
+    try {
+      await ipc.checkoutBranch(path, name);
+      set({ commits: [] });
+      await get().loadCommits(0, 500);
+      await get().loadBranches();
+      await get().loadStatus();
+    } catch (e) {
+      set({ error: String(e) });
+    }
+  },
+
+  checkoutCommit: async (hash: string) => {
+    const { path } = get();
+    if (!path) return;
+    try {
+      await ipc.checkoutCommit(path, hash);
+      set({ commits: [] });
+      await get().loadCommits(0, 500);
+      await get().loadBranches();
+      await get().loadStatus();
+    } catch (e) {
+      set({ error: String(e) });
+    }
   },
 }));

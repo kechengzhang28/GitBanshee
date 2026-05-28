@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRepoStore } from "../stores/repoStore";
 import type { DiffFile } from "../types";
 import TabBar from "./TabBar";
@@ -9,17 +9,27 @@ import CommitDetails from "./CommitDetails";
 import AIPanel from "./ai/AIPanel";
 import StatusBar from "./StatusBar";
 import DiffViewer from "./DiffViewer";
+import WorkingTree from "./WorkingTree";
+import BranchDialog from "./BranchDialog";
 import { ArrowLeft } from "lucide-react";
 
 export default function RepoView() {
   const error = useRepoStore((s) => s.error);
+  const path = useRepoStore((s) => s.path);
+  const loadStatus = useRepoStore((s) => s.loadStatus);
   const [showLeft, setShowLeft] = useState(true);
   const [showCommit, setShowCommit] = useState(true);
   const [showAI, setShowAI] = useState(false);
+  const [showTree, setShowTree] = useState(false);
+  const [showBranchDialog, setShowBranchDialog] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(1);
   const [viewingFile, setViewingFile] = useState<DiffFile | null>(null);
 
-  if (error) {
+  useEffect(() => {
+    if (path) loadStatus();
+  }, [path, loadStatus]);
+
+  if (!path && error) {
     return (
       <div className="flex h-full items-center justify-center bg-gb-bg">
         <div className="text-center">
@@ -37,9 +47,12 @@ export default function RepoView() {
         showLeft={showLeft}
         showCommit={showCommit}
         showAI={showAI}
+        showTree={showTree}
         onToggleLeft={() => setShowLeft((v) => !v)}
         onToggleCommit={() => setShowCommit((v) => !v)}
         onToggleAI={() => setShowAI((v) => !v)}
+        onToggleTree={() => setShowTree((v) => !v)}
+        onBranchClick={() => setShowBranchDialog(true)}
       />
       <div className="flex flex-1 overflow-hidden">
         {showLeft && (
@@ -79,7 +92,16 @@ export default function RepoView() {
           </div>
         )}
       </div>
+      {showTree && (
+        <div className="h-[180px] shrink-0">
+          <WorkingTree />
+        </div>
+      )}
       <StatusBar zoomLevel={zoomLevel} />
+      <BranchDialog
+        open={showBranchDialog}
+        onClose={() => setShowBranchDialog(false)}
+      />
     </div>
   );
 }
