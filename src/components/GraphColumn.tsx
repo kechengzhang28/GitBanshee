@@ -70,7 +70,7 @@ function GraphColumn({ scrollTop, colWidth, zoomLevel = 1 }: GraphColumnProps) {
           const px = laneX(pp.lane);
           const py = rowY(pi);
 
-          ctx.strokeStyle = color(c.lane);
+          ctx.strokeStyle = color(Math.max(c.lane, pp.lane));
           ctx.lineWidth = lineW;
           ctx.beginPath();
 
