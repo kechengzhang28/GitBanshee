@@ -1,4 +1,5 @@
 import { Undo2, Redo2, Download, Upload, GitBranch, Archive, ArrowUpFromLine, PanelLeft, Info, Sparkles } from "lucide-react";
+import IconButton from "./IconButton";
 
 interface Props {
   showLeft: boolean;
@@ -24,9 +25,24 @@ export default function RepoToolbar({ showLeft, showCommit, showAI, onToggleLeft
       <ToolbarButton Icon={ArrowUpFromLine} label="Pop" />
       <div className="flex-1" />
       <Separator />
-      <ToggleButton Icon={PanelLeft} active={showLeft} onClick={onToggleLeft} title="Toggle Left Panel" />
-      <ToggleButton Icon={Info} active={showCommit} onClick={onToggleCommit} title="Toggle Commit Details" />
-      <ToggleButton Icon={Sparkles} active={showAI} onClick={onToggleAI} title="Toggle AI Panel" />
+      <IconButton
+        icon={PanelLeft}
+        onClick={onToggleLeft}
+        title="Toggle Left Panel"
+        className={showLeft ? "text-gb-accent" : "text-gb-text-muted"}
+      />
+      <IconButton
+        icon={Info}
+        onClick={onToggleCommit}
+        title="Toggle Commit Details"
+        className={showCommit ? "text-gb-accent" : "text-gb-text-muted"}
+      />
+      <IconButton
+        icon={Sparkles}
+        onClick={onToggleAI}
+        title="Toggle AI Panel"
+        className={showAI ? "text-gb-accent" : "text-gb-text-muted"}
+      />
     </div>
   );
 }
@@ -48,30 +64,6 @@ function ToolbarButton({
     >
       <Icon size={14} />
       <span>{label}</span>
-    </button>
-  );
-}
-
-function ToggleButton({
-  Icon,
-  active,
-  onClick,
-  title,
-}: {
-  Icon: React.ElementType;
-  active: boolean;
-  onClick: () => void;
-  title: string;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      title={title}
-      className={`flex h-8 w-8 items-center justify-center rounded ${
-        active ? "text-gb-accent" : "text-gb-text-muted"
-      } hover:bg-gb-hover hover:text-gb-text`}
-    >
-      <Icon size={14} />
     </button>
   );
 }

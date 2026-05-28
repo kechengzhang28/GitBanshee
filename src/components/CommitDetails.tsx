@@ -1,4 +1,5 @@
 import { useRepoStore } from "../stores/repoStore";
+import PanelHeader from "./PanelHeader";
 
 export default function CommitDetails() {
   const commit = useRepoStore((s) => s.selectedCommit);
@@ -13,9 +14,7 @@ export default function CommitDetails() {
 
   return (
     <div className="flex h-full flex-col bg-gb-panel">
-      <div className="flex h-8 items-center border-b border-gb-border px-3">
-        <span className="text-xs font-semibold text-gb-text">Commit Details</span>
-      </div>
+      <PanelHeader title="Commit Details" />
       <div className="flex-1 overflow-auto p-3">
         <div className="space-y-2.5 text-xs">
           <div>
