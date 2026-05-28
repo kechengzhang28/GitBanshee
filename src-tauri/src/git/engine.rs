@@ -8,25 +8,17 @@ pub fn open_repo(path: &str) -> Result<Repository, git2::Error> {
 
 pub fn count_commits(repo: &Repository) -> Result<usize, git2::Error> {
     let mut revwalk = repo.revwalk()?;
-    revwalk.set_sorting(Sort::TOPOLOGICAL)?;
+    revwalk.set_sorting(Sort::TOPOLOGICAL | Sort::TIME)?;
     revwalk.push_head()?;
     Ok(revwalk.count())
 }
 
-pub fn get_commits(
-    repo: &Repository,
-    offset: usize,
-    limit: usize,
-) -> Result<Vec<CommitNode>, git2::Error> {
+pub fn get_all_commits(repo: &Repository) -> Result<Vec<CommitNode>, git2::Error> {
     let mut revwalk = repo.revwalk()?;
-    revwalk.set_sorting(Sort::TOPOLOGICAL)?;
+    revwalk.set_sorting(Sort::TOPOLOGICAL | Sort::TIME)?;
     revwalk.push_head()?;
 
-    let oids: Vec<git2::Oid> = revwalk
-        .skip(offset)
-        .take(limit)
-        .filter_map(|r| r.ok())
-        .collect();
+    let oids: Vec<git2::Oid> = revwalk.filter_map(|r| r.ok()).collect();
     let mut commits = Vec::with_capacity(oids.len());
 
     for (row, oid) in oids.iter().enumerate() {
@@ -41,7 +33,7 @@ pub fn get_commits(
             timestamp: commit.time().seconds(),
             parents,
             lane: 0,
-            row: offset + row,
+            row,
         });
     }
 

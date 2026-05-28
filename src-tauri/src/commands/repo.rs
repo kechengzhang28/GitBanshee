@@ -1,6 +1,19 @@
 use crate::git::engine;
 use crate::models::{BranchInfo, CommitNode, DiffContent};
 use serde::{Deserialize, Serialize};
+use std::sync::Mutex;
+
+pub struct CommitCache(pub Mutex<Option<Vec<CommitNode>>>);
+
+impl CommitCache {
+    pub fn new() -> Self {
+        Self(Mutex::new(None))
+    }
+
+    pub fn clear(&self) {
+        *self.0.lock().unwrap() = None;
+    }
+}
 
 #[derive(Serialize, Deserialize)]
 pub struct OpenRepoResult {
@@ -10,7 +23,8 @@ pub struct OpenRepoResult {
 }
 
 #[tauri::command]
-pub fn open_repo(path: String) -> Result<OpenRepoResult, String> {
+pub fn open_repo(cache: tauri::State<'_, CommitCache>, path: String) -> Result<OpenRepoResult, String> {
+    cache.clear();
     let repo = engine::open_repo(&path).map_err(|e| e.to_string())?;
     let branches = engine::get_branches(&repo).map_err(|e| e.to_string())?;
     let commit_count = engine::count_commits(&repo).map_err(|e| e.to_string())?;
@@ -22,9 +36,30 @@ pub fn open_repo(path: String) -> Result<OpenRepoResult, String> {
 }
 
 #[tauri::command]
-pub fn get_commits(path: String, offset: usize, limit: usize) -> Result<Vec<CommitNode>, String> {
+pub fn get_commits(
+    cache: tauri::State<'_, CommitCache>,
+    path: String,
+    offset: usize,
+    limit: usize,
+) -> Result<Vec<CommitNode>, String> {
+    {
+        let cached = cache.0.lock().unwrap();
+        if let Some(all) = cached.as_ref() {
+            let start = offset.min(all.len());
+            let end = (offset + limit).min(all.len());
+            return Ok(all[start..end].to_vec());
+        }
+    }
+
     let repo = engine::open_repo(&path).map_err(|e| e.to_string())?;
-    engine::get_commits(&repo, offset, limit).map_err(|e| e.to_string())
+    let all = engine::get_all_commits(&repo).map_err(|e| e.to_string())?;
+
+    let start = offset.min(all.len());
+    let end = (offset + limit).min(all.len());
+    let page = all[start..end].to_vec();
+
+    *cache.0.lock().unwrap() = Some(all);
+    Ok(page)
 }
 
 #[tauri::command]

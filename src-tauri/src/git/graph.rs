@@ -1,5 +1,5 @@
 use crate::models::CommitNode;
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap};
 
 pub fn assign_lanes(commits: &mut [CommitNode]) {
     if commits.is_empty() {
@@ -33,7 +33,15 @@ pub fn assign_lanes(commits: &mut [CommitNode]) {
         }
     }
 
+    // Compact lanes
+    let used: BTreeSet<usize> = lane_map.values().copied().collect();
+    let mut remap: HashMap<usize, usize> = HashMap::new();
+    for (new_lane, old_lane) in used.iter().enumerate() {
+        remap.insert(*old_lane, new_lane);
+    }
+
     for commit in commits.iter_mut() {
-        commit.lane = lane_map.get(&commit.hash).copied().unwrap_or(0);
+        let old = lane_map.get(&commit.hash).copied().unwrap_or(0);
+        commit.lane = remap.get(&old).copied().unwrap_or(0);
     }
 }

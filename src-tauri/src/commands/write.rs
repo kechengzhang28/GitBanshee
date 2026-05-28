@@ -1,3 +1,4 @@
+use crate::commands::repo::CommitCache;
 use crate::git::{branch, engine, worktree};
 use crate::models::StatusEntry;
 use serde::Serialize;
@@ -32,10 +33,16 @@ pub fn stage_all(path: String) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub fn create_commit(path: String, message: String, amend: bool) -> Result<CommitResult, String> {
+pub fn create_commit(
+    cache: tauri::State<'_, CommitCache>,
+    path: String,
+    message: String,
+    amend: bool,
+) -> Result<CommitResult, String> {
     let repo = engine::open_repo(&path).map_err(|e| e.to_string())?;
     let oid = engine::create_commit(&repo, &message, amend).map_err(|e| e.to_string())?;
     let short = oid.to_string().chars().take(7).collect();
+    cache.clear();
     Ok(CommitResult {
         hash: oid.to_string(),
         short_hash: short,
@@ -55,13 +62,25 @@ pub fn delete_branch(path: String, name: String) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub fn checkout_branch(path: String, name: String) -> Result<(), String> {
+pub fn checkout_branch(
+    cache: tauri::State<'_, CommitCache>,
+    path: String,
+    name: String,
+) -> Result<(), String> {
     let repo = engine::open_repo(&path).map_err(|e| e.to_string())?;
-    branch::checkout_branch(&repo, &name).map_err(|e| e.to_string())
+    branch::checkout_branch(&repo, &name).map_err(|e| e.to_string())?;
+    cache.clear();
+    Ok(())
 }
 
 #[tauri::command]
-pub fn checkout_commit(path: String, hash: String) -> Result<(), String> {
+pub fn checkout_commit(
+    cache: tauri::State<'_, CommitCache>,
+    path: String,
+    hash: String,
+) -> Result<(), String> {
     let repo = engine::open_repo(&path).map_err(|e| e.to_string())?;
-    engine::checkout_commit(&repo, &hash).map_err(|e| e.to_string())
+    engine::checkout_commit(&repo, &hash).map_err(|e| e.to_string())?;
+    cache.clear();
+    Ok(())
 }
