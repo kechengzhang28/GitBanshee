@@ -14,6 +14,7 @@ export default function LeftPanel() {
   const path = useRepoStore((s) => s.path);
   const branches = useRepoStore((s) => s.branches);
   const loadBranches = useRepoStore((s) => s.loadBranches);
+  const checkoutBranch = useRepoStore((s) => s.checkoutBranch);
   const [open, setOpen] = useState<SectionState>({
     local: true,
     remote: false,
@@ -46,13 +47,14 @@ export default function LeftPanel() {
             name={b.name}
             active={b.is_head}
             current={currentBranch?.name === b.name}
+            onClick={() => checkoutBranch(b.name)}
           />
         ))}
       {/* REMOTE */}
       <SectionHeader label="REMOTE" count={remoteBranches.length} open={open.remote} onToggle={() => toggle("remote")} />
       {open.remote &&
         remoteBranches.map((b) => (
-          <BranchRow key={b.name} name={b.name} remote />
+          <BranchRow key={b.name} name={b.name} remote onClick={() => checkoutBranch(b.name)} />
         ))}
       {/* TAGS */}
       <SectionHeader label="TAGS" count={0} open={open.tags} onToggle={() => toggle("tags")} />
@@ -91,14 +93,17 @@ function BranchRow({
   active,
   current,
   remote,
+  onClick,
 }: {
   name: string;
   active?: boolean;
   current?: boolean;
   remote?: boolean;
+  onClick?: () => void;
 }) {
   return (
     <div
+      onClick={onClick}
       className={`flex h-7 cursor-pointer items-center gap-2 px-3 text-xs ${
         current ? "bg-gb-hover" : ""
       } hover:bg-gb-hover`}

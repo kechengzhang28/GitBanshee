@@ -1,10 +1,17 @@
 import type { DiffFile } from "../types";
 
 const STATUS_COLORS: Record<string, string> = {
-  M: "text-gb-warning",
-  A: "text-gb-success",
-  D: "text-gb-danger",
-  R: "text-gb-accent",
+  added: "text-gb-success",
+  modified: "text-gb-warning",
+  deleted: "text-gb-danger",
+  renamed: "text-gb-accent",
+};
+
+const STATUS_ABBR: Record<string, string> = {
+  added: "A",
+  modified: "M",
+  deleted: "D",
+  renamed: "R",
 };
 
 interface Props {
@@ -25,7 +32,7 @@ export default function FileExplorer({ files, selectedFile, onSelect }: Props) {
           }`}
         >
           <span className={`w-4 text-center font-mono font-bold ${STATUS_COLORS[f.status] ?? "text-gb-text-muted"}`}>
-            {f.status}
+            {STATUS_ABBR[f.status] ?? f.status[0]?.toUpperCase()}
           </span>
           <span className="truncate text-gb-text">{f.path}</span>
           <div className="flex-1" />

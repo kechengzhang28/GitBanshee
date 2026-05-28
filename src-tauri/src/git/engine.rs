@@ -58,7 +58,9 @@ pub fn get_branches(repo: &Repository) -> Result<Vec<BranchInfo>, git2::Error> {
         let name = b.name()?.unwrap_or("").to_string();
         let target = b.get().target().map(|oid| oid.to_string());
         let is_head = b.is_head();
-        let upstream = None;
+        let upstream = b.upstream().ok().and_then(|u| {
+            u.name().ok().flatten().map(|n| n.to_string())
+        });
         result.push(BranchInfo {
             name,
             is_head,

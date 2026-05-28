@@ -4,6 +4,8 @@ import { getCommitDiff } from "../utils/ipc";
 import type { DiffContent, DiffFile } from "../types";
 import PanelHeader from "./PanelHeader";
 import FileExplorer from "./FileExplorer";
+import Button from "./ui/Button";
+import { GitCommitHorizontal } from "lucide-react";
 
 interface Props {
   onViewFile?: (file: DiffFile) => void;
@@ -12,6 +14,9 @@ interface Props {
 export default function CommitDetails({ onViewFile }: Props) {
   const commit = useRepoStore((s) => s.selectedCommit);
   const path = useRepoStore((s) => s.path);
+  const checkoutCommit = useRepoStore((s) => s.checkoutCommit);
+  const branches = useRepoStore((s) => s.branches);
+  const currentBranch = branches.find((b) => b.is_head);
   const [diff, setDiff] = useState<DiffContent | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -57,9 +62,22 @@ export default function CommitDetails({ onViewFile }: Props) {
     <div className="flex h-full flex-col bg-gb-panel">
       <PanelHeader title="Commit Details" />
       <div className="shrink-0 space-y-1 border-b border-gb-border px-3 py-2 text-xs">
-        <div>
-          <span className="text-gb-text-muted">Hash</span>{" "}
-          <span className="font-mono text-gb-text">{commit.short_hash}</span>
+        <div className="flex items-center justify-between">
+          <span>
+            <span className="text-gb-text-muted">Hash</span>{" "}
+            <span className="font-mono text-gb-text">{commit.short_hash}</span>
+          </span>
+          {!currentBranch && (
+            <Button
+              variant="ghost"
+              size="sm"
+              icon={GitCommitHorizontal}
+              onClick={() => checkoutCommit(commit.hash)}
+              title="Checkout this commit"
+            >
+              Checkout
+            </Button>
+          )}
         </div>
         <div>
           <span className="text-gb-text-muted">Author</span>{" "}
