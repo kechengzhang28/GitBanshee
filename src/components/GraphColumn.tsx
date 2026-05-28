@@ -78,12 +78,16 @@ function GraphColumn({ scrollTop, colWidth, zoomLevel = 1 }: GraphColumnProps) {
             ctx.moveTo(cx, cy);
             ctx.lineTo(px, py);
           } else if (px > cx) {
+            const cr = Math.min(r, Math.abs(px - cx) / 2, Math.abs(py - cy) / 2);
             ctx.moveTo(cx, cy);
-            ctx.lineTo(px, cy);
+            ctx.lineTo(px - cr, cy);
+            ctx.arcTo(px, cy, px, cy + cr, cr);
             ctx.lineTo(px, py);
           } else {
+            const cr = Math.min(r, Math.abs(px - cx) / 2, Math.abs(py - cy) / 2);
             ctx.moveTo(cx, cy);
-            ctx.lineTo(cx, py);
+            ctx.lineTo(cx, py - cr);
+            ctx.arcTo(cx, py, cx - cr, py, cr);
             ctx.lineTo(px, py);
           }
 
