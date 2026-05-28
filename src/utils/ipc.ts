@@ -4,6 +4,7 @@ import type {
   CommitNode,
   CommitResult,
   DiffContent,
+  LaneSpan,
   OpenRepoResult,
   StatusEntry,
 } from "../types";
@@ -16,8 +17,8 @@ export async function getCommits(
   path: string,
   offset: number,
   limit: number,
-): Promise<CommitNode[]> {
-  return invoke<CommitNode[]>("get_commits", { path, offset, limit });
+): Promise<{ commits: CommitNode[]; lane_spans: LaneSpan[] }> {
+  return invoke<{ commits: CommitNode[]; lane_spans: LaneSpan[] }>("get_commits", { path, offset, limit });
 }
 
 export async function getBranches(path: string): Promise<BranchInfo[]> {

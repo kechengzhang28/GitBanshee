@@ -13,6 +13,7 @@ function GraphColumn({ scrollTop, colWidth, zoomLevel = 1 }: GraphColumnProps) {
   const rafRef = useRef(0);
 
   const commits = useRepoStore((s) => s.commits);
+  const laneSpans = useRepoStore((s) => s.laneSpans);
   const selectedCommit = useRepoStore((s) => s.selectedCommit);
 
   const draw = useCallback(() => {
@@ -93,6 +94,20 @@ function GraphColumn({ scrollTop, colWidth, zoomLevel = 1 }: GraphColumnProps) {
 
           ctx.stroke();
         }
+      }
+
+      // Lane continuation spans: fill vertical gaps where child commit
+      // is outside the overshot range but the lane still passes through.
+      for (const span of laneSpans) {
+        const vs = Math.max(span.start_row, firstRow);
+        const ve = Math.min(span.end_row, lastRow);
+        if (vs >= ve) continue;
+        ctx.strokeStyle = color(span.lane);
+        ctx.lineWidth = lineW;
+        ctx.beginPath();
+        ctx.moveTo(laneX(span.lane), rowY(vs));
+        ctx.lineTo(laneX(span.lane), rowY(ve));
+        ctx.stroke();
       }
 
       // Draw nodes

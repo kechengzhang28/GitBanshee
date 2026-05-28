@@ -1,9 +1,9 @@
 use crate::git::engine;
-use crate::models::{BranchInfo, CommitNode, DiffContent};
+use crate::models::{BranchInfo, CommitNode, DiffContent, LaneSpan};
 use serde::{Deserialize, Serialize};
 use std::sync::Mutex;
 
-pub struct CommitCache(pub Mutex<Option<Vec<CommitNode>>>);
+pub struct CommitCache(pub Mutex<Option<(Vec<CommitNode>, Vec<LaneSpan>)>>);
 
 impl CommitCache {
     pub fn new() -> Self {
@@ -20,6 +20,12 @@ pub struct OpenRepoResult {
     pub path: String,
     pub branch_count: usize,
     pub commit_count: usize,
+}
+
+#[derive(Serialize)]
+pub struct GetCommitsResponse {
+    pub commits: Vec<CommitNode>,
+    pub lane_spans: Vec<LaneSpan>,
 }
 
 #[tauri::command]
@@ -41,25 +47,34 @@ pub fn get_commits(
     path: String,
     offset: usize,
     limit: usize,
-) -> Result<Vec<CommitNode>, String> {
+) -> Result<GetCommitsResponse, String> {
+    let spans;
+    let page;
+
     {
         let cached = cache.0.lock().unwrap();
-        if let Some(all) = cached.as_ref() {
+        if let Some((all, all_spans)) = cached.as_ref() {
             let start = offset.min(all.len());
             let end = (offset + limit).min(all.len());
-            return Ok(all[start..end].to_vec());
+            page = all[start..end].to_vec();
+            spans = all_spans.clone();
+            return Ok(GetCommitsResponse {
+                commits: page,
+                lane_spans: spans,
+            });
         }
     }
 
     let repo = engine::open_repo(&path).map_err(|e| e.to_string())?;
-    let all = engine::get_all_commits(&repo).map_err(|e| e.to_string())?;
+    let (all, all_spans) = engine::get_all_commits(&repo).map_err(|e| e.to_string())?;
 
     let start = offset.min(all.len());
     let end = (offset + limit).min(all.len());
-    let page = all[start..end].to_vec();
+    page = all[start..end].to_vec();
+    spans = all_spans.clone();
 
-    *cache.0.lock().unwrap() = Some(all);
-    Ok(page)
+    *cache.0.lock().unwrap() = Some((all, all_spans));
+    Ok(GetCommitsResponse { commits: page, lane_spans: spans })
 }
 
 #[tauri::command]

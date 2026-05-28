@@ -1,4 +1,5 @@
-use crate::models::CommitNode;
+use crate::models::{CommitNode, LaneSpan};
+use std::collections::HashMap;
 
 pub fn assign_lanes(commits: &mut [CommitNode]) {
     if commits.is_empty() {
@@ -69,4 +70,49 @@ fn find_free_column(columns: &mut Vec<Option<String>>, skip: Option<usize>) -> u
     }
     columns.push(None);
     columns.len() - 1
+}
+
+pub fn compute_lane_spans(commits: &[CommitNode]) -> Vec<LaneSpan> {
+    if commits.is_empty() {
+        return Vec::new();
+    }
+
+    let mut hash_to_row: HashMap<&str, usize> = HashMap::new();
+    for (row, c) in commits.iter().enumerate() {
+        hash_to_row.insert(&c.hash, row);
+    }
+
+    // Build spans: vertical lane spans from child row to parent row
+    let mut spans: Vec<LaneSpan> = Vec::new();
+    for (row, c) in commits.iter().enumerate() {
+        for parent_hash in &c.parents {
+            if let Some(&parent_row) = hash_to_row.get(parent_hash.as_str()) {
+                let vertical_lane = c.lane.max(commits[parent_row].lane);
+                if row < parent_row {
+                    spans.push(LaneSpan {
+                        lane: vertical_lane,
+                        start_row: row,
+                        end_row: parent_row,
+                    });
+                }
+            }
+        }
+    }
+
+    // Sort by lane, then start_row for merging
+    spans.sort_by(|a, b| a.lane.cmp(&b.lane).then_with(|| a.start_row.cmp(&b.start_row)));
+
+    // Merge overlapping spans per lane
+    let mut merged: Vec<LaneSpan> = Vec::new();
+    for span in spans {
+        if let Some(last) = merged.last_mut() {
+            if last.lane == span.lane && last.end_row >= span.start_row {
+                last.end_row = last.end_row.max(span.end_row);
+                continue;
+            }
+        }
+        merged.push(span);
+    }
+
+    merged
 }
