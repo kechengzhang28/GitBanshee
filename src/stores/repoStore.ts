@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { BranchInfo, CommitNode, LaneSpan, StatusEntry } from "../types";
+import type { BranchInfo, CommitNode, CrossConnection, LaneSpan, StatusEntry } from "../types";
 import * as ipc from "../utils/ipc";
 
 interface RepoState {
@@ -7,6 +7,7 @@ interface RepoState {
   branches: BranchInfo[];
   commits: CommitNode[];
   laneSpans: LaneSpan[];
+  connections: CrossConnection[];
   selectedCommit: CommitNode | null;
   commitCount: number;
   status: StatusEntry[];
@@ -35,6 +36,7 @@ export const useRepoStore = create<RepoState>((set, get) => ({
   branches: [],
   commits: [],
   laneSpans: [],
+  connections: [],
   selectedCommit: null,
   commitCount: 0,
   status: [],
@@ -57,6 +59,7 @@ export const useRepoStore = create<RepoState>((set, get) => ({
     set({
       commits: offset === 0 ? response.commits : [...existing, ...response.commits],
       laneSpans: response.lane_spans,
+      connections: response.connections,
     });
   },
 
@@ -77,6 +80,7 @@ export const useRepoStore = create<RepoState>((set, get) => ({
       branches: [],
       commits: [],
       laneSpans: [],
+      connections: [],
       selectedCommit: null,
       commitCount: 0,
       status: [],

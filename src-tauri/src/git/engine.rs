@@ -1,5 +1,5 @@
-use crate::git::graph::{assign_lanes, compute_lane_spans};
-use crate::models::{BranchInfo, CommitNode, DiffContent, DiffFile, DiffHunk, DiffLine, LaneSpan};
+use crate::git::graph::{assign_lanes, compute_connections, compute_lane_spans};
+use crate::models::{BranchInfo, CommitNode, CrossConnection, DiffContent, DiffFile, DiffHunk, DiffLine, LaneSpan};
 use git2::{BranchType, DiffOptions, Repository, Sort};
 
 pub fn open_repo(path: &str) -> Result<Repository, git2::Error> {
@@ -13,7 +13,7 @@ pub fn count_commits(repo: &Repository) -> Result<usize, git2::Error> {
     Ok(revwalk.count())
 }
 
-pub fn get_all_commits(repo: &Repository) -> Result<(Vec<CommitNode>, Vec<LaneSpan>), git2::Error> {
+pub fn get_all_commits(repo: &Repository) -> Result<(Vec<CommitNode>, Vec<LaneSpan>, Vec<CrossConnection>), git2::Error> {
     let mut revwalk = repo.revwalk()?;
     revwalk.set_sorting(Sort::TOPOLOGICAL | Sort::TIME)?;
     revwalk.push_head()?;
@@ -39,7 +39,8 @@ pub fn get_all_commits(repo: &Repository) -> Result<(Vec<CommitNode>, Vec<LaneSp
 
     assign_lanes(&mut commits);
     let spans = compute_lane_spans(&commits);
-    Ok((commits, spans))
+    let connections = compute_connections(&commits);
+    Ok((commits, spans, connections))
 }
 
 pub fn get_branches(repo: &Repository) -> Result<Vec<BranchInfo>, git2::Error> {

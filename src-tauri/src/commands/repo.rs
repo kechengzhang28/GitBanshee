@@ -1,9 +1,9 @@
 use crate::git::engine;
-use crate::models::{BranchInfo, CommitNode, DiffContent, LaneSpan};
+use crate::models::{BranchInfo, CommitNode, CrossConnection, DiffContent, LaneSpan};
 use serde::{Deserialize, Serialize};
 use std::sync::Mutex;
 
-pub struct CommitCache(pub Mutex<Option<(Vec<CommitNode>, Vec<LaneSpan>)>>);
+pub struct CommitCache(pub Mutex<Option<(Vec<CommitNode>, Vec<LaneSpan>, Vec<CrossConnection>)>>);
 
 impl CommitCache {
     pub fn new() -> Self {
@@ -26,6 +26,7 @@ pub struct OpenRepoResult {
 pub struct GetCommitsResponse {
     pub commits: Vec<CommitNode>,
     pub lane_spans: Vec<LaneSpan>,
+    pub connections: Vec<CrossConnection>,
 }
 
 #[tauri::command]
@@ -49,32 +50,36 @@ pub fn get_commits(
     limit: usize,
 ) -> Result<GetCommitsResponse, String> {
     let spans;
+    let connections;
     let page;
 
     {
         let cached = cache.0.lock().unwrap();
-        if let Some((all, all_spans)) = cached.as_ref() {
+        if let Some((all, all_spans, all_connections)) = cached.as_ref() {
             let start = offset.min(all.len());
             let end = (offset + limit).min(all.len());
             page = all[start..end].to_vec();
             spans = all_spans.clone();
+            connections = all_connections.clone();
             return Ok(GetCommitsResponse {
                 commits: page,
                 lane_spans: spans,
+                connections,
             });
         }
     }
 
     let repo = engine::open_repo(&path).map_err(|e| e.to_string())?;
-    let (all, all_spans) = engine::get_all_commits(&repo).map_err(|e| e.to_string())?;
+    let (all, all_spans, all_connections) = engine::get_all_commits(&repo).map_err(|e| e.to_string())?;
 
     let start = offset.min(all.len());
     let end = (offset + limit).min(all.len());
     page = all[start..end].to_vec();
     spans = all_spans.clone();
+    connections = all_connections.clone();
 
-    *cache.0.lock().unwrap() = Some((all, all_spans));
-    Ok(GetCommitsResponse { commits: page, lane_spans: spans })
+    *cache.0.lock().unwrap() = Some((all, all_spans, all_connections));
+    Ok(GetCommitsResponse { commits: page, lane_spans: spans, connections })
 }
 
 #[tauri::command]

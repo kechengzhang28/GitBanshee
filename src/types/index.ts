@@ -63,3 +63,10 @@ export interface LaneSpan {
   start_row: number;
   end_row: number;
 }
+
+export interface CrossConnection {
+  corner_lane: number;
+  horizontal_lane: number;
+  row: number;
+  horizontal_first: boolean;
+}

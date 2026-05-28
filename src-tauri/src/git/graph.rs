@@ -1,4 +1,4 @@
-use crate::models::{CommitNode, LaneSpan};
+use crate::models::{CommitNode, CrossConnection, LaneSpan};
 use std::collections::HashMap;
 
 pub fn assign_lanes(commits: &mut [CommitNode]) {
@@ -115,4 +115,44 @@ pub fn compute_lane_spans(commits: &[CommitNode]) -> Vec<LaneSpan> {
     }
 
     merged
+}
+
+pub fn compute_connections(commits: &[CommitNode]) -> Vec<CrossConnection> {
+    if commits.is_empty() {
+        return Vec::new();
+    }
+
+    let mut hash_to_row: HashMap<&str, usize> = HashMap::new();
+    for (row, c) in commits.iter().enumerate() {
+        hash_to_row.insert(&c.hash, row);
+    }
+
+    let mut connections = Vec::new();
+    for (row, c) in commits.iter().enumerate() {
+        for parent_hash in &c.parents {
+            if let Some(&parent_row) = hash_to_row.get(parent_hash.as_str()) {
+                if row >= parent_row {
+                    continue;
+                }
+                let pp = &commits[parent_row];
+                if c.lane == pp.lane {
+                    continue; // same lane — vertical only, handled by spans
+                }
+
+                let corner_lane = c.lane.max(pp.lane);
+                let horizontal_lane = c.lane.min(pp.lane);
+                let horizontal_first = pp.lane > c.lane; // rightward
+                let conn_row = if horizontal_first { row } else { parent_row };
+
+                connections.push(CrossConnection {
+                    corner_lane,
+                    horizontal_lane,
+                    row: conn_row,
+                    horizontal_first,
+                });
+            }
+        }
+    }
+
+    connections
 }

@@ -14,6 +14,7 @@ function GraphColumn({ scrollTop, colWidth, zoomLevel = 1 }: GraphColumnProps) {
 
   const commits = useRepoStore((s) => s.commits);
   const laneSpans = useRepoStore((s) => s.laneSpans);
+  const connections = useRepoStore((s) => s.connections);
   const selectedCommit = useRepoStore((s) => s.selectedCommit);
 
   const draw = useCallback(() => {
@@ -45,7 +46,6 @@ function GraphColumn({ scrollTop, colWidth, zoomLevel = 1 }: GraphColumnProps) {
 
     const firstRow = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - OVERSHOT_ROWS);
     const lastRow = Math.min(commits.length, Math.ceil((scrollTop + h) / ROW_HEIGHT) + OVERSHOT_ROWS);
-    const oy = -scrollTop;
     const z = zoomLevel;
     const lw = LANE_WIDTH * z;
     const pad = PADDING_X * z;
@@ -53,122 +53,50 @@ function GraphColumn({ scrollTop, colWidth, zoomLevel = 1 }: GraphColumnProps) {
     const lineW = 1.5 * z;
 
     const laneX = (lane: number) => lane * lw + lw / 2 + pad;
-    const rowY = (row: number) => oy + row * ROW_HEIGHT + ROW_HEIGHT / 2;
+    const rowY = (row: number) => -scrollTop + row * ROW_HEIGHT + ROW_HEIGHT / 2;
     const color = (lane: number) => BRANCH_COLORS[lane % BRANCH_COLORS.length];
 
     try {
-      // Collect edge vertical ranges per lane to avoid double-draw with spans
-      const edgeRanges = new Map<number, [number, number][]>();
-
-      // Draw all parent-child edges
-      for (let i = firstRow; i < lastRow; i++) {
-        const c = commits[i];
-        if (!c) continue;
-        const cx = laneX(c.lane);
-        const cy = rowY(i);
-
-        for (const ph of c.parents) {
-          const pi = commits.findIndex((p) => p.hash === ph);
-          if (pi === -1) continue;
-          const pp = commits[pi];
-          const px = laneX(pp.lane);
-          const py = rowY(pi);
-          const vl = Math.max(c.lane, pp.lane);
-
-          // Track edge vertical range for span subtraction
-          {
-            let list = edgeRanges.get(vl);
-            if (!list) { list = []; edgeRanges.set(vl, list); }
-            list.push([i, pi]);
-          }
-
-          ctx.strokeStyle = color(vl);
-          ctx.lineWidth = lineW;
-          ctx.beginPath();
-
-          if (c.lane === pp.lane) {
-            ctx.moveTo(cx, cy);
-            ctx.lineTo(px, py);
-          } else if (px > cx) {
-            const cr = Math.min(r, Math.abs(px - cx) / 2, Math.abs(py - cy) / 2);
-            ctx.moveTo(cx, cy);
-            ctx.lineTo(px - cr, cy);
-            ctx.arcTo(px, cy, px, cy + cr, cr);
-            ctx.lineTo(px, py);
-          } else {
-            const cr = Math.min(r, Math.abs(px - cx) / 2, Math.abs(py - cy) / 2);
-            ctx.moveTo(cx, cy);
-            ctx.lineTo(cx, py - cr);
-            ctx.arcTo(cx, py, cx - cr, py, cr);
-            ctx.lineTo(px, py);
-          }
-
-          ctx.stroke();
-        }
-      }
-
-      // Merge edge ranges per lane
-      const edgeCovered = new Map<number, [number, number][]>();
-      for (const [lane, ranges] of edgeRanges) {
-        ranges.sort((a, b) => a[0] - b[0]);
-        const merged: [number, number][] = [];
-        for (const [s, e] of ranges) {
-          const last = merged[merged.length - 1];
-          if (last && last[1] >= s) {
-            last[1] = Math.max(last[1], e);
-          } else {
-            merged.push([s, e]);
-          }
-        }
-        edgeCovered.set(lane, merged);
-      }
-
-      // Lane continuation spans: draw vertical gaps not already covered by edges
+      // ── Layer 1: vertical spans ──
+      ctx.lineWidth = lineW;
       for (const span of laneSpans) {
         const vs = Math.max(span.start_row, firstRow);
         const ve = Math.min(span.end_row, lastRow);
         if (vs >= ve) continue;
-
-        const covering = edgeCovered.get(span.lane);
-        if (!covering) {
-          // No edge coverage — draw full span
-          ctx.strokeStyle = color(span.lane);
-          ctx.lineWidth = lineW;
-          ctx.beginPath();
-          ctx.moveTo(laneX(span.lane), rowY(vs));
-          ctx.lineTo(laneX(span.lane), rowY(ve));
-          ctx.stroke();
-          continue;
-        }
-
-        // Subtract edge-covered ranges, draw remaining gaps
-        let cur = vs;
-        for (const [es, ee] of covering) {
-          const ecs = Math.max(es, cur);
-          const ece = Math.min(ee, ve);
-          if (ecs > cur) {
-            // Gap from cur to ecs
-            ctx.strokeStyle = color(span.lane);
-            ctx.lineWidth = lineW;
-            ctx.beginPath();
-            ctx.moveTo(laneX(span.lane), rowY(cur));
-            ctx.lineTo(laneX(span.lane), rowY(ecs));
-            ctx.stroke();
-          }
-          cur = Math.max(cur, ece);
-        }
-        if (cur < ve) {
-          // Trailing gap
-          ctx.strokeStyle = color(span.lane);
-          ctx.lineWidth = lineW;
-          ctx.beginPath();
-          ctx.moveTo(laneX(span.lane), rowY(cur));
-          ctx.lineTo(laneX(span.lane), rowY(ve));
-          ctx.stroke();
-        }
+        ctx.strokeStyle = color(span.lane);
+        ctx.beginPath();
+        ctx.moveTo(laneX(span.lane), rowY(vs));
+        ctx.lineTo(laneX(span.lane), rowY(ve));
+        ctx.stroke();
       }
 
-      // Draw nodes
+      // ── Layer 2: cross-lane connections (horizontal + arc) ──
+      ctx.lineWidth = lineW;
+      for (const conn of connections) {
+        if (conn.row < firstRow || conn.row >= lastRow) continue;
+
+        const cornerX = laneX(conn.corner_lane);
+        const hx = laneX(conn.horizontal_lane);
+        const ry = rowY(conn.row);
+        const cr = Math.min(r, (cornerX - hx) / 2);
+
+        ctx.strokeStyle = color(conn.corner_lane);
+        ctx.beginPath();
+
+        if (conn.horizontal_first) {
+          ctx.moveTo(hx, ry);
+          ctx.lineTo(cornerX - cr, ry);
+          ctx.arcTo(cornerX, ry, cornerX, ry + cr, cr);
+        } else {
+          ctx.moveTo(cornerX, ry - cr);
+          ctx.arcTo(cornerX, ry, cornerX - cr, ry, cr);
+          ctx.lineTo(hx, ry);
+        }
+
+        ctx.stroke();
+      }
+
+      // ── Layer 3: nodes ──
       for (let i = firstRow; i < lastRow; i++) {
         const c = commits[i];
         if (!c) continue;
@@ -194,7 +122,7 @@ function GraphColumn({ scrollTop, colWidth, zoomLevel = 1 }: GraphColumnProps) {
     } catch { /* skip frame */ }
 
     rafRef.current = requestAnimationFrame(draw);
-  }, [commits, selectedCommit, scrollTop, zoomLevel]);
+  }, [commits, laneSpans, connections, selectedCommit, scrollTop, zoomLevel]);
 
   useEffect(() => {
     rafRef.current = requestAnimationFrame(draw);
