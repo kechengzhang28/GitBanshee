@@ -1,47 +1,72 @@
 use crate::models::CommitNode;
-use std::collections::{BTreeSet, HashMap};
 
 pub fn assign_lanes(commits: &mut [CommitNode]) {
     if commits.is_empty() {
         return;
     }
 
-    let mut lane_map: HashMap<String, usize> = HashMap::new();
-    let mut next_lane: usize = 0;
+    let mut columns: Vec<Option<String>> = Vec::new();
 
     for (row, commit) in commits.iter_mut().enumerate() {
         commit.row = row;
         let hash = &commit.hash;
         let parents = &commit.parents;
 
-        let lane = *lane_map.entry(hash.clone()).or_insert_with(|| {
-            let l = next_lane;
-            next_lane += 1;
-            l
+        let col = find_column(&columns, hash).unwrap_or_else(|| {
+            // Not yet placed: find first free column
+            find_free_column(&mut columns, None)
         });
+        // Free this commit's column before assigning parents
+        if col < columns.len() {
+            columns[col] = None;
+        }
+        commit.lane = col;
 
         for (idx, parent_hash) in parents.iter().enumerate() {
-            lane_map.entry(parent_hash.clone()).or_insert_with(|| {
-                if idx == 0 {
-                    lane
-                } else {
-                    let l = next_lane;
-                    next_lane += 1;
-                    l
+            if idx == 0 {
+                // First parent: stays in commit's column (straight line)
+                let old_col = find_column(&columns, parent_hash);
+                if let Some(oc) = old_col {
+                    if oc != col {
+                        columns[oc] = None;
+                    }
                 }
-            });
+                if col >= columns.len() {
+                    columns.resize(col + 1, None);
+                }
+                columns[col] = Some(parent_hash.clone());
+            } else {
+                // Extra parent: find free column for new branch
+                let existing_col = find_column(&columns, parent_hash);
+                if existing_col.is_some() {
+                    // Already placed by another child — leave it (merge point)
+                    continue;
+                }
+                let pcol = find_free_column(&mut columns, Some(col));
+                columns[pcol] = Some(parent_hash.clone());
+            }
         }
     }
+}
 
-    // Compact lanes
-    let used: BTreeSet<usize> = lane_map.values().copied().collect();
-    let mut remap: HashMap<usize, usize> = HashMap::new();
-    for (new_lane, old_lane) in used.iter().enumerate() {
-        remap.insert(*old_lane, new_lane);
-    }
+fn find_column(columns: &[Option<String>], hash: &str) -> Option<usize> {
+    columns.iter().position(|entry| entry.as_deref() == Some(hash))
+}
 
-    for commit in commits.iter_mut() {
-        let old = lane_map.get(&commit.hash).copied().unwrap_or(0);
-        commit.lane = remap.get(&old).copied().unwrap_or(0);
+fn find_free_column(columns: &mut Vec<Option<String>>, skip: Option<usize>) -> usize {
+    let candidate = columns.iter().position(|entry| entry.is_none());
+    if let Some(c) = candidate {
+        if let Some(s) = skip {
+            if c == s {
+                // Current column is also free (rare edge case), look for next
+                let next = columns[s + 1..].iter().position(|e| e.is_none());
+                if let Some(n) = next {
+                    return s + 1 + n;
+                }
+            }
+        }
+        return c;
     }
+    columns.push(None);
+    columns.len() - 1
 }
