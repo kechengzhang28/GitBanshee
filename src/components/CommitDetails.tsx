@@ -31,9 +31,6 @@ export default function CommitDetails({ onViewFile }: Props) {
       .then((d) => {
         setDiff(d);
         setSelectedFile(d.files.length > 0 ? d.files[0].path : null);
-        if (onViewFile && d.files.length > 0) {
-          onViewFile(d.files[0]);
-        }
       })
       .catch((e) => setError(String(e)))
       .finally(() => setLoading(false));
