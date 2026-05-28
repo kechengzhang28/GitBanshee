@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { useRepoStore } from "../stores/repoStore";
+import PanelHeader from "./PanelHeader";
 
 interface SectionState {
   local: boolean;
@@ -35,7 +36,7 @@ export default function LeftPanel() {
 
   return (
     <div className="flex h-full flex-col overflow-auto border-r border-gb-border bg-gb-panel">
-      <ListTab />
+      <PanelHeader title="Branches" />
       {/* LOCAL */}
       <SectionHeader label="LOCAL" count={localBranches.length} open={open.local} onToggle={() => toggle("local")} />
       {open.local &&
@@ -57,17 +58,6 @@ export default function LeftPanel() {
       <SectionHeader label="TAGS" count={0} open={open.tags} onToggle={() => toggle("tags")} />
       {/* STASHES */}
       <SectionHeader label="STASHES" count={0} open={open.stashes} onToggle={() => toggle("stashes")} />
-    </div>
-  );
-}
-
-function ListTab() {
-  return (
-    <div className="flex border-b border-gb-border px-2 pt-1">
-      <div className="rounded-t border-b-2 border-gb-accent px-3 py-1.5 text-xs font-semibold text-gb-accent">
-        List
-      </div>
-      <div className="px-3 py-1.5 text-xs text-gb-text-muted">Agents</div>
     </div>
   );
 }

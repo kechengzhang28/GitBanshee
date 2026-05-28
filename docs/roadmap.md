@@ -88,12 +88,11 @@ Development follows a gradual expansion from MVP to production-ready release.
 **Goal:** Native AI features as a competitive differentiator.
 
 - Build the AI engine on the Rust side with dual-backend routing (Ollama + OpenAI).
-- Build the AI assistant panel on the frontend with conversational UI.
-- Implement the four AI features:
-  - Commit message generation (from staged diff)
-  - Code review (from selected commit diff)
-  - Repository Q&A (context-aware chat)
-  - Branch naming suggestions
+- AI conversation UI lives in the right-side AIPanel (collapsible), triggered by action chips:
+  - **Msg** — generate commit message from staged diff (Conventional Commits)
+  - **Review** — review selected commit diff for actionable issues
+  - **Explain** — explain a code snippet or file in natural language
+  - **Q&A** — free-form context-aware chat about the repository
 - Build the settings page for AI configuration and model selection.
 - Integrate encrypted persistence for API keys.
 
