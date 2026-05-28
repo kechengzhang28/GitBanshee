@@ -1,5 +1,4 @@
-use crate::models::{CommitNode, CrossConnection, LaneSpan};
-use std::collections::HashMap;
+use crate::models::CommitNode;
 
 pub fn assign_lanes(commits: &mut [CommitNode]) {
     if commits.is_empty() {
@@ -14,10 +13,8 @@ pub fn assign_lanes(commits: &mut [CommitNode]) {
         let parents = &commit.parents;
 
         let col = find_column(&columns, hash).unwrap_or_else(|| {
-            // Not yet placed: find first free column
             find_free_column(&mut columns, None)
         });
-        // Free this commit's column before assigning parents
         if col < columns.len() {
             columns[col] = None;
         }
@@ -25,7 +22,6 @@ pub fn assign_lanes(commits: &mut [CommitNode]) {
 
         for (idx, parent_hash) in parents.iter().enumerate() {
             if idx == 0 {
-                // First parent: stays in commit's column (straight line)
                 let old_col = find_column(&columns, parent_hash);
                 if let Some(oc) = old_col {
                     if oc != col {
@@ -37,10 +33,8 @@ pub fn assign_lanes(commits: &mut [CommitNode]) {
                 }
                 columns[col] = Some(parent_hash.clone());
             } else {
-                // Extra parent: find free column for new branch
                 let existing_col = find_column(&columns, parent_hash);
                 if existing_col.is_some() {
-                    // Already placed by another child — leave it (merge point)
                     continue;
                 }
                 let pcol = find_free_column(&mut columns, Some(col));
@@ -59,7 +53,6 @@ fn find_free_column(columns: &mut Vec<Option<String>>, skip: Option<usize>) -> u
     if let Some(c) = candidate {
         if let Some(s) = skip {
             if c == s {
-                // Current column is also free (rare edge case), look for next
                 let next = columns[s + 1..].iter().position(|e| e.is_none());
                 if let Some(n) = next {
                     return s + 1 + n;
@@ -70,89 +63,4 @@ fn find_free_column(columns: &mut Vec<Option<String>>, skip: Option<usize>) -> u
     }
     columns.push(None);
     columns.len() - 1
-}
-
-pub fn compute_lane_spans(commits: &[CommitNode]) -> Vec<LaneSpan> {
-    if commits.is_empty() {
-        return Vec::new();
-    }
-
-    let mut hash_to_row: HashMap<&str, usize> = HashMap::new();
-    for (row, c) in commits.iter().enumerate() {
-        hash_to_row.insert(&c.hash, row);
-    }
-
-    // Build spans: vertical lane spans from child row to parent row
-    let mut spans: Vec<LaneSpan> = Vec::new();
-    for (row, c) in commits.iter().enumerate() {
-        for parent_hash in &c.parents {
-            if let Some(&parent_row) = hash_to_row.get(parent_hash.as_str()) {
-                let vertical_lane = c.lane.max(commits[parent_row].lane);
-                if row < parent_row {
-                    spans.push(LaneSpan {
-                        lane: vertical_lane,
-                        start_row: row,
-                        end_row: parent_row,
-                    });
-                }
-            }
-        }
-    }
-
-    // Sort by lane, then start_row for merging
-    spans.sort_by(|a, b| a.lane.cmp(&b.lane).then_with(|| a.start_row.cmp(&b.start_row)));
-
-    // Merge overlapping spans per lane
-    let mut merged: Vec<LaneSpan> = Vec::new();
-    for span in spans {
-        if let Some(last) = merged.last_mut() {
-            if last.lane == span.lane && last.end_row >= span.start_row {
-                last.end_row = last.end_row.max(span.end_row);
-                continue;
-            }
-        }
-        merged.push(span);
-    }
-
-    merged
-}
-
-pub fn compute_connections(commits: &[CommitNode]) -> Vec<CrossConnection> {
-    if commits.is_empty() {
-        return Vec::new();
-    }
-
-    let mut hash_to_row: HashMap<&str, usize> = HashMap::new();
-    for (row, c) in commits.iter().enumerate() {
-        hash_to_row.insert(&c.hash, row);
-    }
-
-    let mut connections = Vec::new();
-    for (row, c) in commits.iter().enumerate() {
-        for parent_hash in &c.parents {
-            if let Some(&parent_row) = hash_to_row.get(parent_hash.as_str()) {
-                if row >= parent_row {
-                    continue;
-                }
-                let pp = &commits[parent_row];
-                if c.lane == pp.lane {
-                    continue; // same lane — vertical only, handled by spans
-                }
-
-                let corner_lane = c.lane.max(pp.lane);
-                let horizontal_lane = c.lane.min(pp.lane);
-                let horizontal_first = pp.lane > c.lane; // rightward
-                let conn_row = if horizontal_first { row } else { parent_row };
-
-                connections.push(CrossConnection {
-                    corner_lane,
-                    horizontal_lane,
-                    row: conn_row,
-                    horizontal_first,
-                });
-            }
-        }
-    }
-
-    connections
 }

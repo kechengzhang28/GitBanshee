@@ -1,13 +1,11 @@
 import { create } from "zustand";
-import type { BranchInfo, CommitNode, CrossConnection, LaneSpan, StatusEntry } from "../types";
+import type { BranchInfo, CommitNode, StatusEntry } from "../types";
 import * as ipc from "../utils/ipc";
 
 interface RepoState {
   path: string | null;
   branches: BranchInfo[];
   commits: CommitNode[];
-  laneSpans: LaneSpan[];
-  connections: CrossConnection[];
   selectedCommit: CommitNode | null;
   commitCount: number;
   status: StatusEntry[];
@@ -35,8 +33,6 @@ export const useRepoStore = create<RepoState>((set, get) => ({
   path: null,
   branches: [],
   commits: [],
-  laneSpans: [],
-  connections: [],
   selectedCommit: null,
   commitCount: 0,
   status: [],
@@ -58,8 +54,6 @@ export const useRepoStore = create<RepoState>((set, get) => ({
     const response = await ipc.getCommits(path, offset, limit);
     set({
       commits: offset === 0 ? response.commits : [...existing, ...response.commits],
-      laneSpans: response.lane_spans,
-      connections: response.connections,
     });
   },
 
@@ -79,8 +73,6 @@ export const useRepoStore = create<RepoState>((set, get) => ({
       path: null,
       branches: [],
       commits: [],
-      laneSpans: [],
-      connections: [],
       selectedCommit: null,
       commitCount: 0,
       status: [],

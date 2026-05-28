@@ -3,9 +3,7 @@ import type {
   BranchInfo,
   CommitNode,
   CommitResult,
-  CrossConnection,
   DiffContent,
-  LaneSpan,
   OpenRepoResult,
   StatusEntry,
 } from "../types";
@@ -18,8 +16,8 @@ export async function getCommits(
   path: string,
   offset: number,
   limit: number,
-): Promise<{ commits: CommitNode[]; lane_spans: LaneSpan[]; connections: CrossConnection[] }> {
-  return invoke<{ commits: CommitNode[]; lane_spans: LaneSpan[]; connections: CrossConnection[] }>("get_commits", { path, offset, limit });
+): Promise<{ commits: CommitNode[] }> {
+  return invoke<{ commits: CommitNode[] }>("get_commits", { path, offset, limit });
 }
 
 export async function getBranches(path: string): Promise<BranchInfo[]> {

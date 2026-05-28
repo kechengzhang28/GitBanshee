@@ -59,7 +59,7 @@ pub fn stage_file(repo: &Repository, path: &str) -> Result<(), git2::Error> {
 
 pub fn unstage_file(repo: &Repository, path: &str) -> Result<(), git2::Error> {
     let head = repo.head()?.peel_to_commit()?;
-    repo.reset_default(Some(head.as_object()), &[path])
+    repo.reset_default(Some(head.as_object()), [path])
 }
 
 pub fn stage_all(repo_path: &str) -> Result<(), String> {

@@ -57,16 +57,3 @@ export interface CommitResult {
   hash: string;
   short_hash: string;
 }
-
-export interface LaneSpan {
-  lane: number;
-  start_row: number;
-  end_row: number;
-}
-
-export interface CrossConnection {
-  corner_lane: number;
-  horizontal_lane: number;
-  row: number;
-  horizontal_first: boolean;
-}

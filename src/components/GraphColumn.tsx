@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback, memo } from "react";
+import { useEffect, useRef, useCallback, useMemo, memo } from "react";
 import { useRepoStore } from "../stores/repoStore";
 import { ROW_HEIGHT, LANE_WIDTH, NODE_RADIUS, PADDING_X, OVERSHOT_ROWS, BRANCH_COLORS } from "./constants";
 
@@ -13,9 +13,15 @@ function GraphColumn({ scrollTop, colWidth, zoomLevel = 1 }: GraphColumnProps) {
   const rafRef = useRef(0);
 
   const commits = useRepoStore((s) => s.commits);
-  const laneSpans = useRepoStore((s) => s.laneSpans);
-  const connections = useRepoStore((s) => s.connections);
   const selectedCommit = useRepoStore((s) => s.selectedCommit);
+
+  const hashToRow = useMemo(() => {
+    const m = new Map<string, number>();
+    for (let i = 0; i < commits.length; i++) {
+      m.set(commits[i].hash, i);
+    }
+    return m;
+  }, [commits]);
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -57,75 +63,53 @@ function GraphColumn({ scrollTop, colWidth, zoomLevel = 1 }: GraphColumnProps) {
     const color = (lane: number) => BRANCH_COLORS[lane % BRANCH_COLORS.length];
 
     try {
-      const crRows = r / ROW_HEIGHT; // vertical corner radius in row units
-
-      // ── Layer 1: vertical spans (with corner holes) ──
+      // Layer 1: per-parent-child-pair connecting lines
+      // Iterate from 0 to capture children above the visible range
+      // whose parent is within the visible range
       ctx.lineWidth = lineW;
-      for (const span of laneSpans) {
-        const vs = Math.max(span.start_row, firstRow);
-        const ve = Math.min(span.end_row, lastRow);
-        if (vs >= ve) continue;
+      for (let i = 0; i < lastRow; i++) {
+        const c = commits[i];
+        if (!c) continue;
+        const sx = laneX(c.lane);
+        const sy = rowY(i) + r;
 
-        // Build gaps from connections that touch this span's lane
-        const gaps: [number, number][] = [];
-        for (const conn of connections) {
-          if (conn.corner_lane !== span.lane) continue;
-          const gs = conn.horizontal_first ? conn.row : conn.row - crRows;
-          const ge = conn.horizontal_first ? conn.row + crRows : conn.row;
-          // Filter gaps that overlap [vs, ve)
-          if (ge <= vs || gs >= ve) continue;
-          gaps.push([Math.max(gs, vs), Math.min(ge, ve)]);
-        }
-        gaps.sort((a, b) => a[0] - b[0]);
+        for (const parentHash of c.parents) {
+          const parentRow = hashToRow.get(parentHash);
+          let tx: number;
+          let ty: number;
+          let pr: number;
 
-        // Draw span segments skipping gaps
-        let cur = vs;
-        for (const [gs, ge] of gaps) {
-          if (gs > cur) {
-            ctx.strokeStyle = color(span.lane);
-            ctx.beginPath();
-            ctx.moveTo(laneX(span.lane), rowY(cur));
-            ctx.lineTo(laneX(span.lane), rowY(gs));
-            ctx.stroke();
+          if (parentRow !== undefined) {
+            if (i >= parentRow) continue;
+            pr = parentRow;
+            if (pr < firstRow) continue;
+            const pp = commits[parentRow];
+            if (!pp) continue;
+            tx = laneX(pp.lane);
+            ty = rowY(parentRow) - r;
+          } else {
+            pr = lastRow;
+            tx = laneX(c.lane);
+            ty = rowY(lastRow) + ROW_HEIGHT;
           }
-          cur = Math.max(cur, ge);
-        }
-        if (cur < ve) {
-          ctx.strokeStyle = color(span.lane);
+
+          ctx.strokeStyle = color(c.lane);
           ctx.beginPath();
-          ctx.moveTo(laneX(span.lane), rowY(cur));
-          ctx.lineTo(laneX(span.lane), rowY(ve));
+          if (tx === sx) {
+            ctx.moveTo(sx, sy);
+            ctx.lineTo(tx, ty);
+          } else {
+            const midY = (sy + ty) / 2;
+            ctx.moveTo(sx, sy);
+            ctx.lineTo(sx, midY);
+            ctx.lineTo(tx, midY);
+            ctx.lineTo(tx, ty);
+          }
           ctx.stroke();
         }
       }
 
-      // ── Layer 2: cross-lane connections (horizontal + arc) ──
-      ctx.lineWidth = lineW;
-      for (const conn of connections) {
-        if (conn.row < firstRow || conn.row >= lastRow) continue;
-
-        const cornerX = laneX(conn.corner_lane);
-        const hx = laneX(conn.horizontal_lane);
-        const ry = rowY(conn.row);
-        const cr = Math.min(r, (cornerX - hx) / 2);
-
-        ctx.strokeStyle = color(conn.corner_lane);
-        ctx.beginPath();
-
-        if (conn.horizontal_first) {
-          ctx.moveTo(hx, ry);
-          ctx.lineTo(cornerX - cr, ry);
-          ctx.arcTo(cornerX, ry, cornerX, ry + cr, cr);
-        } else {
-          ctx.moveTo(cornerX, ry - cr);
-          ctx.arcTo(cornerX, ry, cornerX - cr, ry, cr);
-          ctx.lineTo(hx, ry);
-        }
-
-        ctx.stroke();
-      }
-
-      // ── Layer 3: nodes ──
+      // Layer 2: nodes
       for (let i = firstRow; i < lastRow; i++) {
         const c = commits[i];
         if (!c) continue;
@@ -151,7 +135,7 @@ function GraphColumn({ scrollTop, colWidth, zoomLevel = 1 }: GraphColumnProps) {
     } catch { /* skip frame */ }
 
     rafRef.current = requestAnimationFrame(draw);
-  }, [commits, laneSpans, connections, selectedCommit, scrollTop, zoomLevel]);
+  }, [commits, hashToRow, selectedCommit, scrollTop, zoomLevel]);
 
   useEffect(() => {
     rafRef.current = requestAnimationFrame(draw);
