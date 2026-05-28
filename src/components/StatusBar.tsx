@@ -1,6 +1,10 @@
 import { useRepoStore } from "../stores/repoStore";
 
-export default function StatusBar() {
+interface Props {
+  zoomLevel?: number;
+}
+
+export default function StatusBar({ zoomLevel = 1 }: Props) {
   const path = useRepoStore((s) => s.path);
   const commitCount = useRepoStore((s) => s.commitCount);
   const branches = useRepoStore((s) => s.branches);
@@ -14,7 +18,7 @@ export default function StatusBar() {
       <span>{current?.name || ""}</span>
       <span>{commitCount.toLocaleString()} commits</span>
       <div className="flex-1" />
-      <span>Zoom: 100%</span>
+      <span>Zoom: {Math.round(zoomLevel * 100)}%</span>
     </div>
   );
 }

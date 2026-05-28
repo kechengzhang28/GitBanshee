@@ -4,10 +4,14 @@ import type { BranchInfo, CommitNode } from "../types";
 import BranchColumn from "./BranchColumn";
 import GraphColumn from "./GraphColumn";
 import MessageColumn from "./MessageColumn";
-
 import { ROW_HEIGHT, LANE_WIDTH, PADDING_X, COMMIT_LIMIT } from "./constants";
 
-export default function CommitGraph() {
+interface Props {
+  zoomLevel?: number;
+  onZoomChange?: (z: number) => void;
+}
+
+export default function CommitGraph({ zoomLevel = 1, onZoomChange }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
   const offsetRef = useRef(0);
@@ -113,7 +117,8 @@ export default function CommitGraph() {
   );
 
   const { scrollTop, containerH } = viewport;
-  const graphColW = Math.max(160, PADDING_X * 2 + maxLane * LANE_WIDTH);
+  const effectiveLaneW = LANE_WIDTH * zoomLevel;
+  const graphColW = Math.max(160, PADDING_X * 2 + maxLane * effectiveLaneW);
   const visibleRows = containerH > 0 ? Math.ceil(containerH / ROW_HEIGHT) + 1 : 20;
   const contentRows = commits.length * ROW_HEIGHT;
   const contentH = contentRows > 0 ? contentRows + 1 : containerH;
@@ -163,6 +168,13 @@ export default function CommitGraph() {
         <div
           ref={scrollRef}
           className="h-full w-full overflow-auto"
+          onWheel={(e) => {
+            if (e.ctrlKey && onZoomChange) {
+              e.preventDefault();
+              const factor = e.deltaY < 0 ? 1.1 : 0.9;
+              onZoomChange(Math.min(2.5, Math.max(0.4, zoomLevel * factor)));
+            }
+          }}
         >
           <div style={{ height: contentH }} />
         </div>
@@ -181,6 +193,7 @@ export default function CommitGraph() {
             <GraphColumn
               scrollTop={scrollTop}
               colWidth={graphColW}
+              zoomLevel={zoomLevel}
             />
             <MessageColumn
               scrollTop={scrollTop}

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useRepoStore } from "../stores/repoStore";
+import type { DiffFile } from "../types";
 import TabBar from "./TabBar";
 import RepoToolbar from "./RepoToolbar";
 import LeftPanel from "./LeftPanel";
@@ -7,12 +8,16 @@ import CommitGraph from "./CommitGraph";
 import CommitDetails from "./CommitDetails";
 import AIPanel from "./ai/AIPanel";
 import StatusBar from "./StatusBar";
+import DiffViewer from "./DiffViewer";
+import { ArrowLeft } from "lucide-react";
 
 export default function RepoView() {
   const error = useRepoStore((s) => s.error);
   const [showLeft, setShowLeft] = useState(true);
   const [showCommit, setShowCommit] = useState(true);
   const [showAI, setShowAI] = useState(false);
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const [viewingFile, setViewingFile] = useState<DiffFile | null>(null);
 
   if (error) {
     return (
@@ -43,20 +48,38 @@ export default function RepoView() {
           </div>
         )}
         <div className="flex-1 overflow-hidden">
-          <CommitGraph />
+          {viewingFile ? (
+            <div className="flex h-full flex-col bg-gb-bg">
+              <div className="flex shrink-0 items-center gap-2 border-b border-gb-border bg-gb-toolbar px-3 py-1">
+                <button
+                  onClick={() => setViewingFile(null)}
+                  className="flex items-center gap-1 rounded px-1.5 py-0.5 text-xs text-gb-text-muted hover:bg-gb-hover hover:text-gb-text"
+                >
+                  <ArrowLeft size={14} />
+                  Back to graph
+                </button>
+                <span className="text-xs text-gb-text-sec">{viewingFile.path}</span>
+              </div>
+              <div className="flex-1 overflow-hidden">
+                <DiffViewer file={viewingFile} />
+              </div>
+            </div>
+          ) : (
+            <CommitGraph zoomLevel={zoomLevel} onZoomChange={setZoomLevel} />
+          )}
         </div>
         {(showCommit || showAI) && (
           <div className="flex shrink-0 border-l border-gb-border">
             {showCommit && (
               <div className="w-[340px]">
-                <CommitDetails />
+                <CommitDetails onViewFile={setViewingFile} />
               </div>
             )}
             {showAI && <AIPanel open={showAI} onToggle={() => setShowAI((v) => !v)} />}
           </div>
         )}
       </div>
-      <StatusBar />
+      <StatusBar zoomLevel={zoomLevel} />
     </div>
   );
 }
