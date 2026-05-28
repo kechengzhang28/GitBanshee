@@ -4,7 +4,7 @@ import type { BranchInfo, CommitNode } from "../types";
 import BranchColumn from "./BranchColumn";
 import GraphColumn from "./GraphColumn";
 import MessageColumn from "./MessageColumn";
-import { ROW_HEIGHT, LANE_WIDTH, PADDING_X, COMMIT_LIMIT } from "./constants";
+import { ROW_HEIGHT, LANE_WIDTH, PADDING_X, COMMIT_LIMIT, BRANCH_COLORS } from "./constants";
 
 interface Props {
   zoomLevel?: number;
@@ -202,19 +202,35 @@ export default function CommitGraph({ zoomLevel = 1, onZoomChange }: Props) {
             />
           </div>
 
-          {visibleCommits.map(({ commit, top }) => (
-            <div
-              key={commit.hash}
-              className={`pointer-events-auto absolute cursor-pointer ${
-                commit.hash === selectedHash
-                  ? "bg-gb-hover"
-                  : "hover:bg-gb-hover"
-              }`}
-              style={{ top, height: ROW_HEIGHT, left: 0, right: 18 }}
-              onClick={() => handleSelectCommit(commit)}
-              onWheel={handleRowWheel}
-            />
-          ))}
+          {visibleCommits.map(({ commit, top }) => {
+            const laneColor = BRANCH_COLORS[commit.lane % BRANCH_COLORS.length];
+            const isSel = commit.hash === selectedHash;
+            return (
+              <div
+                key={commit.hash}
+                className="pointer-events-auto absolute cursor-pointer"
+                style={{
+                  top,
+                  height: ROW_HEIGHT,
+                  left: 0,
+                  right: 18,
+                  backgroundColor: isSel ? laneColor + "26" : undefined,
+                }}
+                onMouseEnter={(e) => {
+                  if (!isSel) {
+                    (e.target as HTMLElement).style.backgroundColor = laneColor + "14";
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isSel) {
+                    (e.target as HTMLElement).style.backgroundColor = "";
+                  }
+                }}
+                onClick={() => handleSelectCommit(commit)}
+                onWheel={handleRowWheel}
+              />
+            );
+          })}
         </div>
       </div>
     </div>

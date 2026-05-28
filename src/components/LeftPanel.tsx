@@ -26,8 +26,8 @@ export default function LeftPanel() {
     if (path) loadBranches();
   }, [path, loadBranches]);
 
-  const localBranches = branches.filter((b) => !b.upstream || b.upstream === "");
-  const remoteBranches = branches.filter((b) => b.upstream && b.upstream !== "");
+  const localBranches = branches.filter((b) => !b.is_remote);
+  const remoteBranches = branches.filter((b) => b.is_remote);
   const currentBranch = branches.find((b) => b.is_head);
 
   const toggle = (key: keyof SectionState) =>
@@ -54,7 +54,7 @@ export default function LeftPanel() {
       <SectionHeader label="REMOTE" count={remoteBranches.length} open={open.remote} onToggle={() => toggle("remote")} />
       {open.remote &&
         remoteBranches.map((b) => (
-          <BranchRow key={b.name} name={b.name} remote onClick={() => checkoutBranch(b.name)} />
+          <BranchRow key={b.name} name={b.name} onClick={() => checkoutBranch(b.name)} />
         ))}
       {/* TAGS */}
       <SectionHeader label="TAGS" count={0} open={open.tags} onToggle={() => toggle("tags")} />
@@ -92,13 +92,11 @@ function BranchRow({
   name,
   active,
   current,
-  remote,
   onClick,
 }: {
   name: string;
   active?: boolean;
   current?: boolean;
-  remote?: boolean;
   onClick?: () => void;
 }) {
   return (
@@ -115,7 +113,7 @@ function BranchRow({
         }}
       />
       <span className={active ? "text-gb-text" : "text-gb-text-muted"}>
-        {remote ? `origin/${name}` : name}
+        {name}
       </span>
     </div>
   );

@@ -42,10 +42,11 @@ pub fn get_all_commits(repo: &Repository) -> Result<Vec<CommitNode>, git2::Error
 }
 
 pub fn get_branches(repo: &Repository) -> Result<Vec<BranchInfo>, git2::Error> {
-    let branches = repo.branches(Some(BranchType::Local))?;
     let mut result = Vec::new();
 
-    for branch in branches {
+    // Local branches
+    let local = repo.branches(Some(BranchType::Local))?;
+    for branch in local {
         let (b, _bt) = branch?;
         let name = b.name()?.unwrap_or("").to_string();
         let target = b.get().target().map(|oid| oid.to_string());
@@ -58,6 +59,22 @@ pub fn get_branches(repo: &Repository) -> Result<Vec<BranchInfo>, git2::Error> {
             is_head,
             target_commit: target,
             upstream,
+            is_remote: false,
+        });
+    }
+
+    // Remote branches
+    let remotes = repo.branches(Some(BranchType::Remote))?;
+    for branch in remotes {
+        let (b, _bt) = branch?;
+        let name = b.name()?.unwrap_or("").to_string();
+        let target = b.get().target().map(|oid| oid.to_string());
+        result.push(BranchInfo {
+            name,
+            is_head: false,
+            target_commit: target,
+            upstream: None,
+            is_remote: true,
         });
     }
 

@@ -15,6 +15,7 @@ export interface BranchInfo {
   is_head: boolean;
   target_commit: string | null;
   upstream: string | null;
+  is_remote: boolean;
 }
 
 export interface OpenRepoResult {

@@ -6,4 +6,5 @@ pub struct BranchInfo {
     pub is_head: bool,
     pub target_commit: Option<String>,
     pub upstream: Option<String>,
+    pub is_remote: bool,
 }
