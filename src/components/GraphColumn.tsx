@@ -57,6 +57,9 @@ function GraphColumn({ scrollTop, colWidth, zoomLevel = 1 }: GraphColumnProps) {
     const color = (lane: number) => BRANCH_COLORS[lane % BRANCH_COLORS.length];
 
     try {
+      // Collect edge vertical ranges per lane to avoid double-draw with spans
+      const edgeRanges = new Map<number, [number, number][]>();
+
       // Draw all parent-child edges
       for (let i = firstRow; i < lastRow; i++) {
         const c = commits[i];
@@ -70,8 +73,16 @@ function GraphColumn({ scrollTop, colWidth, zoomLevel = 1 }: GraphColumnProps) {
           const pp = commits[pi];
           const px = laneX(pp.lane);
           const py = rowY(pi);
+          const vl = Math.max(c.lane, pp.lane);
 
-          ctx.strokeStyle = color(Math.max(c.lane, pp.lane));
+          // Track edge vertical range for span subtraction
+          {
+            let list = edgeRanges.get(vl);
+            if (!list) { list = []; edgeRanges.set(vl, list); }
+            list.push([i, pi]);
+          }
+
+          ctx.strokeStyle = color(vl);
           ctx.lineWidth = lineW;
           ctx.beginPath();
 
@@ -96,18 +107,65 @@ function GraphColumn({ scrollTop, colWidth, zoomLevel = 1 }: GraphColumnProps) {
         }
       }
 
-      // Lane continuation spans: fill vertical gaps where child commit
-      // is outside the overshot range but the lane still passes through.
+      // Merge edge ranges per lane
+      const edgeCovered = new Map<number, [number, number][]>();
+      for (const [lane, ranges] of edgeRanges) {
+        ranges.sort((a, b) => a[0] - b[0]);
+        const merged: [number, number][] = [];
+        for (const [s, e] of ranges) {
+          const last = merged[merged.length - 1];
+          if (last && last[1] >= s) {
+            last[1] = Math.max(last[1], e);
+          } else {
+            merged.push([s, e]);
+          }
+        }
+        edgeCovered.set(lane, merged);
+      }
+
+      // Lane continuation spans: draw vertical gaps not already covered by edges
       for (const span of laneSpans) {
         const vs = Math.max(span.start_row, firstRow);
         const ve = Math.min(span.end_row, lastRow);
         if (vs >= ve) continue;
-        ctx.strokeStyle = color(span.lane);
-        ctx.lineWidth = lineW;
-        ctx.beginPath();
-        ctx.moveTo(laneX(span.lane), rowY(vs));
-        ctx.lineTo(laneX(span.lane), rowY(ve));
-        ctx.stroke();
+
+        const covering = edgeCovered.get(span.lane);
+        if (!covering) {
+          // No edge coverage — draw full span
+          ctx.strokeStyle = color(span.lane);
+          ctx.lineWidth = lineW;
+          ctx.beginPath();
+          ctx.moveTo(laneX(span.lane), rowY(vs));
+          ctx.lineTo(laneX(span.lane), rowY(ve));
+          ctx.stroke();
+          continue;
+        }
+
+        // Subtract edge-covered ranges, draw remaining gaps
+        let cur = vs;
+        for (const [es, ee] of covering) {
+          const ecs = Math.max(es, cur);
+          const ece = Math.min(ee, ve);
+          if (ecs > cur) {
+            // Gap from cur to ecs
+            ctx.strokeStyle = color(span.lane);
+            ctx.lineWidth = lineW;
+            ctx.beginPath();
+            ctx.moveTo(laneX(span.lane), rowY(cur));
+            ctx.lineTo(laneX(span.lane), rowY(ecs));
+            ctx.stroke();
+          }
+          cur = Math.max(cur, ece);
+        }
+        if (cur < ve) {
+          // Trailing gap
+          ctx.strokeStyle = color(span.lane);
+          ctx.lineWidth = lineW;
+          ctx.beginPath();
+          ctx.moveTo(laneX(span.lane), rowY(cur));
+          ctx.lineTo(laneX(span.lane), rowY(ve));
+          ctx.stroke();
+        }
       }
 
       // Draw nodes
