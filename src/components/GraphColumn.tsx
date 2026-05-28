@@ -57,17 +57,46 @@ function GraphColumn({ scrollTop, colWidth, zoomLevel = 1 }: GraphColumnProps) {
     const color = (lane: number) => BRANCH_COLORS[lane % BRANCH_COLORS.length];
 
     try {
-      // ── Layer 1: vertical spans ──
+      const crRows = r / ROW_HEIGHT; // vertical corner radius in row units
+
+      // ── Layer 1: vertical spans (with corner holes) ──
       ctx.lineWidth = lineW;
       for (const span of laneSpans) {
         const vs = Math.max(span.start_row, firstRow);
         const ve = Math.min(span.end_row, lastRow);
         if (vs >= ve) continue;
-        ctx.strokeStyle = color(span.lane);
-        ctx.beginPath();
-        ctx.moveTo(laneX(span.lane), rowY(vs));
-        ctx.lineTo(laneX(span.lane), rowY(ve));
-        ctx.stroke();
+
+        // Build gaps from connections that touch this span's lane
+        const gaps: [number, number][] = [];
+        for (const conn of connections) {
+          if (conn.corner_lane !== span.lane) continue;
+          const gs = conn.horizontal_first ? conn.row : conn.row - crRows;
+          const ge = conn.horizontal_first ? conn.row + crRows : conn.row;
+          // Filter gaps that overlap [vs, ve)
+          if (ge <= vs || gs >= ve) continue;
+          gaps.push([Math.max(gs, vs), Math.min(ge, ve)]);
+        }
+        gaps.sort((a, b) => a[0] - b[0]);
+
+        // Draw span segments skipping gaps
+        let cur = vs;
+        for (const [gs, ge] of gaps) {
+          if (gs > cur) {
+            ctx.strokeStyle = color(span.lane);
+            ctx.beginPath();
+            ctx.moveTo(laneX(span.lane), rowY(cur));
+            ctx.lineTo(laneX(span.lane), rowY(gs));
+            ctx.stroke();
+          }
+          cur = Math.max(cur, ge);
+        }
+        if (cur < ve) {
+          ctx.strokeStyle = color(span.lane);
+          ctx.beginPath();
+          ctx.moveTo(laneX(span.lane), rowY(cur));
+          ctx.lineTo(laneX(span.lane), rowY(ve));
+          ctx.stroke();
+        }
       }
 
       // ── Layer 2: cross-lane connections (horizontal + arc) ──
