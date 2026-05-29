@@ -3,6 +3,8 @@ import type { BranchInfo, PositionedCommit, RenderData, StashEntry, StatusEntry 
 import * as ipc from "../utils/ipc";
 import { toast } from "./toastStore";
 
+const COMMIT_WINDOW_SIZE = 5000;
+
 interface RepoState {
   path: string | null;
   branches: BranchInfo[];
@@ -77,19 +79,30 @@ export const useRepoStore = create<RepoState>((set, get) => ({
   },
 
   loadCommits: async (offset: number, limit: number) => {
-    const { path, commits: existing } = get();
+    const { path } = get();
     if (!path) return;
     try {
       const response = await ipc.getCommits(path, offset, limit);
-      const newCommits = offset === 0 ? response.commits : [...existing, ...response.commits];
-      set({
-        commits: newCommits,
-        renderData: {
+      set((state) => {
+        let newCommits: typeof response.commits;
+        if (offset === 0) {
+          newCommits = response.commits;
+        } else {
+          newCommits = [...state.commits, ...response.commits];
+          // Sliding window: discard oldest half when above threshold
+          if (newCommits.length > COMMIT_WINDOW_SIZE) {
+            newCommits = newCommits.slice(newCommits.length - COMMIT_WINDOW_SIZE / 2);
+          }
+        }
+        return {
           commits: newCommits,
-          branch_paths: response.branch_paths,
-          merge_curves: response.merge_curves,
-          fork_curves: response.fork_curves,
-        },
+          renderData: {
+            commits: newCommits,
+            branch_paths: response.branch_paths,
+            merge_curves: response.merge_curves,
+            fork_curves: response.fork_curves,
+          },
+        };
       });
     } catch (e) {
       toast("error", String(e));
