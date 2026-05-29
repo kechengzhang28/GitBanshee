@@ -28,7 +28,7 @@ export default function LeftPanel() {
   }, [path, loadBranches]);
 
   const localBranches = branches.filter((b) => !b.is_remote);
-  const remoteBranches = branches.filter((b) => b.is_remote);
+  const remoteBranches = branches.filter((b) => b.is_remote && !b.name.endsWith("/HEAD"));
   const currentBranch = branches.find((b) => b.is_head);
 
   const toggle = (key: keyof SectionState) =>
