@@ -1,63 +1,66 @@
-use git2::{ObjectType, Repository, Signature};
+use git2::{Oid, Repository, Signature};
 use std::error::Error;
+use std::fs;
 use std::path::Path;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let path = Path::new("../mock-repo");
     if path.exists() {
-        std::fs::remove_dir_all(path)?;
+        fs::remove_dir_all(path)?;
     }
 
     let repo = Repository::init(path)?;
     let sig = Signature::now("Test User", "test@example.com")?;
 
-    // ── Main branch ──────────────────────────────────────────────
+    // ── A: initial root ──
+    let a = write_commit(&repo, &sig, "A: initial root commit", &[]);
+    repo.reference("refs/heads/main", a, false, "main")?;
+    set_head(&repo, "refs/heads/main");
 
-    let a = empty(&repo, &sig, "A: initial root commit");
-    let b = child(&repo, &sig, "B: add README.md", &a);
+    // ── B: on main ──
+    let b = write_commit(&repo, &sig, "B: add README.md", &[a]);
+    update_ref(&repo, "refs/heads/main", b);
+    set_head(&repo, "refs/heads/main");
+    obj_tag(&repo, "v0.1", b);
 
-    // Lightweight tag on B
-    obj_tag(&repo, "v0.1", &b);
+    // ── Feature branch: C, D (fork from B) ──
+    repo.branch("feature", &repo.find_commit(b)?, false)?;
+    let c = write_commit(&repo, &sig, "C: start feature work", &[b]);
+    update_ref(&repo, "refs/heads/feature", c);
+    let d = write_commit(&repo, &sig, "D: finish feature", &[c]);
+    update_ref(&repo, "refs/heads/feature", d);
 
-    // ── Feature branch (fork from B) ────────────────────────────
-    make_branch(&repo, "feature", &b);
-    let _c = on_branch(&repo, &sig, "C: start feature work", "refs/heads/feature");
-    let d = on_branch(&repo, &sig, "D: finish feature", "refs/heads/feature");
-
-    // ── Main continues ──────────────────────────────────────────
-    checkout(&repo, "refs/heads/main");
-    let e = child_obj(&repo, &sig, "E: main line continues", &b);
-    let f = child_obj(&repo, &sig, "F: add docs", &e);
+    // ── Main continues: E, F (from B) ──
+    set_head(&repo, "refs/heads/main");
+    let e = write_commit(&repo, &sig, "E: main line continues", &[b]);
+    update_ref(&repo, "refs/heads/main", e);
+    let f = write_commit(&repo, &sig, "F: add docs", &[e]);
+    update_ref(&repo, "refs/heads/main", f);
+    set_head(&repo, "refs/heads/main");
 
     // Annotated tag on F
     let f_obj = repo.find_object(f, None)?;
     repo.tag("v1.0", &f_obj, &sig, "release version 1.0", false)?;
 
-    // ── Merge feature into main ─────────────────────────────────
-    let g = merge(
-        &repo,
-        &sig,
-        "G: merge feature into main",
-        &f,
-        &d,
-    );
+    // ── Merge feature into main: G (parents: F, D) ──
+    let g = write_commit(&repo, &sig, "G: merge feature into main", &[f, d]);
+    update_ref(&repo, "refs/heads/main", g);
+    set_head(&repo, "refs/heads/main");
 
-    // ── Hotfix branch (fork from E) ─────────────────────────────
-    make_branch(&repo, "hotfix", &e);
-    let _h = on_branch(&repo, &sig, "H: hotfix bug #42", "refs/heads/hotfix");
-    let i = on_branch(&repo, &sig, "I: hotfix done", "refs/heads/hotfix");
+    // ── Hotfix branch: H, I (fork from E) ──
+    repo.branch("hotfix", &repo.find_commit(e)?, false)?;
+    let h = write_commit(&repo, &sig, "H: hotfix bug #42", &[e]);
+    update_ref(&repo, "refs/heads/hotfix", h);
+    let i = write_commit(&repo, &sig, "I: hotfix done", &[h]);
+    update_ref(&repo, "refs/heads/hotfix", i);
 
-    // ── Merge hotfix into main ──────────────────────────────────
-    checkout(&repo, "refs/heads/main");
-    let _j = merge(
-        &repo,
-        &sig,
-        "J: merge hotfix into main",
-        &g,
-        &i,
-    );
+    // ── Merge hotfix into main: J (parents: G, I) ──
+    set_head(&repo, "refs/heads/main");
+    let j = write_commit(&repo, &sig, "J: merge hotfix into main", &[g, i]);
+    update_ref(&repo, "refs/heads/main", j);
+    set_head(&repo, "refs/heads/main");
 
-    // ── Remote tracking ref ─────────────────────────────────────
+    // ── Remote tracking ref ──
     repo.reference("refs/remotes/origin/main", a, false, "remote tracking")?;
 
     println!("Mock repo created at: {}", path.canonicalize()?.display());
@@ -69,98 +72,33 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-// ── Helpers ─────────────────────────────────────────────────────
+// ── Low-level helpers ─────────────────────────────────────────────
 
-fn empty(repo: &Repository, sig: &Signature, msg: &str) -> git2::Oid {
+fn write_commit(repo: &Repository, sig: &Signature, msg: &str, parents: &[Oid]) -> Oid {
+    let tree = empty_tree(repo);
+    let parent_commits: Vec<git2::Commit> = parents.iter().map(|p| repo.find_commit(*p).unwrap()).collect();
+    let parent_refs: Vec<&git2::Commit> = parent_commits.iter().collect();
+    let buf = repo.commit_create_buffer(sig, sig, msg, &tree, &parent_refs).unwrap();
+    repo.odb().unwrap().write(git2::ObjectType::Commit, &buf).unwrap()
+}
+
+fn empty_tree(repo: &Repository) -> git2::Tree {
     let mut index = repo.index().unwrap();
-    let tree_oid = index.write_tree().unwrap();
-    let tree = repo.find_tree(tree_oid).unwrap();
-    repo.commit(Some("refs/heads/main"), sig, sig, msg, &tree, &[])
-        .unwrap()
+    let oid = index.write_tree().unwrap();
+    repo.find_tree(oid).unwrap()
 }
 
-fn child(repo: &Repository, sig: &Signature, msg: &str, parent: &git2::Oid) -> git2::Oid {
-    child_obj(repo, sig, msg, parent)
+fn update_ref(repo: &Repository, name: &str, oid: Oid) {
+    repo.reference(name, oid, true, "").unwrap();
 }
 
-fn child_obj(repo: &Repository, sig: &Signature, msg: &str, parent: &git2::Oid) -> git2::Oid {
-    let parent_commit = repo.find_commit(*parent).unwrap();
-    let parent_tree = parent_commit.tree().unwrap();
-    let mut b = repo.treebuilder(Some(&parent_tree)).unwrap();
-    let file_oid = repo.blob(b"mock content").unwrap();
-    b.insert(format!("file_{}.txt", msg.len()), file_oid, 0o100644)
-        .unwrap();
-    let tree_oid = b.write().unwrap();
-    let tree = repo.find_tree(tree_oid).unwrap();
-    repo.commit(
-        Some("HEAD"),
-        sig,
-        sig,
-        msg,
-        &tree,
-        &[&parent_commit],
-    )
-    .unwrap()
-}
-
-fn make_branch(repo: &Repository, name: &str, from: &git2::Oid) {
-    let commit = repo.find_commit(*from).unwrap();
-    repo.branch(name, &commit, false).unwrap();
-}
-
-fn on_branch(
-    repo: &Repository,
-    sig: &Signature,
-    msg: &str,
-    ref_name: &str,
-) -> git2::Oid {
-    checkout(repo, ref_name);
-    let head = repo.head().unwrap().peel_to_commit().unwrap();
-    let tree = head.tree().unwrap();
-    let mut b = repo.treebuilder(Some(&tree)).unwrap();
-    let file_oid = repo.blob(b"mock content").unwrap();
-    b.insert(format!("file_{}.txt", msg.len()), file_oid, 0o100644)
-        .unwrap();
-    let tree_oid = b.write().unwrap();
-    let tree = repo.find_tree(tree_oid).unwrap();
-    repo.commit(Some(ref_name), sig, sig, msg, &tree, &[&head])
-        .unwrap()
-}
-
-fn checkout(repo: &Repository, ref_name: &str) {
-    let (obj, _) = repo.revparse_ext(ref_name).unwrap();
-    repo.checkout_tree(&obj, None).unwrap();
+fn set_head(repo: &Repository, ref_name: &str) {
     repo.set_head(ref_name).unwrap();
+    let obj = repo.revparse_single(ref_name).unwrap();
+    repo.checkout_tree(&obj, None).unwrap();
 }
 
-fn obj_tag(repo: &Repository, name: &str, oid: &git2::Oid) {
-    let obj = repo.find_object(*oid, Some(ObjectType::Commit)).unwrap();
+fn obj_tag(repo: &Repository, name: &str, oid: Oid) {
+    let obj = repo.find_object(oid, Some(git2::ObjectType::Commit)).unwrap();
     repo.tag_lightweight(name, &obj, false).unwrap();
-}
-
-fn merge(
-    repo: &Repository,
-    sig: &Signature,
-    msg: &str,
-    parent1: &git2::Oid,
-    parent2: &git2::Oid,
-) -> git2::Oid {
-    let p1 = repo.find_commit(*parent1).unwrap();
-    let p2 = repo.find_commit(*parent2).unwrap();
-    let tree = p1.tree().unwrap();
-
-    // Write commit directly to ODB, bypassing HEAD check
-    let oid = repo.commit_create_buffer(sig, sig, msg, &tree, &[&p1, &p2]).unwrap();
-    let oid = repo
-        .odb()
-        .unwrap()
-        .write(git2::ObjectType::Commit, &oid)
-        .unwrap();
-
-    // Update main branch ref
-    repo.reference("refs/heads/main", oid, true, "merge").unwrap();
-    repo.set_head("refs/heads/main").unwrap();
-    checkout(repo, "refs/heads/main");
-
-    oid
 }
