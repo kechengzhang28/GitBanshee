@@ -4,7 +4,9 @@ import type { PositionedCommit } from "../types";
 import BranchColumn from "./BranchColumn";
 import GraphColumn from "./GraphColumn";
 import MessageColumn from "./MessageColumn";
-import { ROW_HEIGHT, LANE_WIDTH, PADDING_X, COMMIT_LIMIT } from "./constants";
+import { ROW_HEIGHT, LANE_WIDTH, PADDING_X, COMMIT_LIMIT,
+  SCROLL_THRESHOLD, BRANCH_COL_WIDTH, HEADER_HEIGHT,
+  ZOOM_MIN, ZOOM_MAX, ZOOM_STEP, ZOOM_STEP_OUT, MIN_GRAPH_COL_WIDTH } from "./constants";
 
 interface Props {
   zoomLevel?: number;
@@ -77,7 +79,7 @@ export default function CommitGraph({ zoomLevel = 1, onZoomChange, onToggleDetai
       pendingST = sc.scrollTop;
       schedule();
       const visibleBottom = sc.scrollTop + sc.clientHeight;
-      if (visibleBottom > commitsLenRef.current * ROW_HEIGHT - 400) {
+      if (visibleBottom > commitsLenRef.current * ROW_HEIGHT - SCROLL_THRESHOLD) {
         loadMoreRef.current();
       }
     };
@@ -124,7 +126,7 @@ export default function CommitGraph({ zoomLevel = 1, onZoomChange, onToggleDetai
 
   const { scrollTop, containerH } = viewport;
   const effectiveLaneW = LANE_WIDTH * zoomLevel;
-  const graphColW = Math.max(160, PADDING_X * 2 + maxLane * effectiveLaneW);
+  const graphColW = Math.max(MIN_GRAPH_COL_WIDTH, PADDING_X * 2 + maxLane * effectiveLaneW);
   const visibleRows = containerH > 0 ? Math.ceil(containerH / ROW_HEIGHT) + 1 : 20;
   const contentRows = commits.length * ROW_HEIGHT;
   const contentH = contentRows > 0 ? contentRows + 1 : containerH;
@@ -154,8 +156,8 @@ export default function CommitGraph({ zoomLevel = 1, onZoomChange, onToggleDetai
   return (
     <div className="flex h-full w-full flex-col overflow-hidden bg-gb-bg">
       <div className="flex shrink-0 items-center border-b border-gb-border text-xs font-medium uppercase tracking-wider text-gb-text-muted"
-        style={{ height: 28, lineHeight: "28px" }}>
-        <div className="shrink-0 border-r border-gb-border pl-3" style={{ width: 144, height: "100%" }}>
+        style={{ height: HEADER_HEIGHT, lineHeight: `${HEADER_HEIGHT}px` }}>
+        <div className="shrink-0 border-r border-gb-border pl-3" style={{ width: BRANCH_COL_WIDTH, height: "100%" }}>
           Branch
         </div>
         <div
@@ -176,8 +178,8 @@ export default function CommitGraph({ zoomLevel = 1, onZoomChange, onToggleDetai
           onWheel={(e) => {
             if (e.ctrlKey && onZoomChange) {
               e.preventDefault();
-              const factor = e.deltaY < 0 ? 1.1 : 0.9;
-              onZoomChange(Math.min(2.5, Math.max(0.4, zoomLevel * factor)));
+              const factor = e.deltaY < 0 ? ZOOM_STEP : ZOOM_STEP_OUT;
+              onZoomChange(Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, zoomLevel * factor)));
             }
           }}
         >

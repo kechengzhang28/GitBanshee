@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use std::collections::HashMap;
 use git2::{Oid, Repository, Sort};
 use crate::graph::sort::temporal_topological_sort;

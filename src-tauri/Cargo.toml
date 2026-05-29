@@ -1,6 +1,6 @@
 [package]
 name = "gitbanshee"
-version = "0.1.0"
+version = "0.4.0"
 description = "A Git visualization desktop app with native AI integration"
 authors = ["Kecheng Zhang"]
 edition = "2021"
