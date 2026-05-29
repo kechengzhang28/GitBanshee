@@ -25,6 +25,7 @@ export default function RepoView() {
   const stashPop = useRepoStore((s) => s.stashPop);
   const cherryPick = useRepoStore((s) => s.cherryPick);
   const selectedCommit = useRepoStore((s) => s.selectedCommit);
+  const stashCount = useRepoStore((s) => s.stashes.length);
   const [showLeft, setShowLeft] = useState(true);
   const [showCommit, setShowCommit] = useState(true);
   const [showAI, setShowAI] = useState(false);
@@ -95,6 +96,7 @@ export default function RepoView() {
         onCherryPick={() => {
           if (selectedCommit) cherryPick(selectedCommit.sha);
         }}
+        stashCount={stashCount}
       />
       <div className="flex flex-1 overflow-hidden">
         {showLeft && (

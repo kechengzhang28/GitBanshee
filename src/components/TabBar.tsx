@@ -1,19 +1,31 @@
 import { useRepoStore } from "../stores/repoStore";
-import Button from "./ui/Button";
-import { Plus, HelpCircle } from "lucide-react";
 
 export default function TabBar() {
   const path = useRepoStore((s) => s.path);
-  if (!path) return null;
+  const openRepoPaths = useRepoStore((s) => s.openRepoPaths);
 
-  const name = path.split(/[/\\]/).pop() || path;
+  if (openRepoPaths.length === 0) return null;
 
   return (
-    <div className="flex h-9 items-center border-b border-gb-border bg-gb-toolbar px-3" data-tauri-drag-region>
-      <span className="text-xs font-medium text-gb-accent">{name}</span>
-      <Button variant="ghost" size="sm" icon={Plus} className="ml-2 text-gb-text-muted" />
+    <div className="flex h-9 items-center border-b border-gb-border bg-gb-toolbar px-1" data-tauri-drag-region>
+      {openRepoPaths.map((p) => {
+        const name = p.split(/[/\\]/).pop() || p;
+        const isActive = p === path;
+        return (
+          <button
+            key={p}
+            className={`flex h-full items-center border-b-2 px-3 text-xs transition-colors ${
+              isActive
+                ? "border-gb-accent font-medium text-gb-accent"
+                : "border-transparent text-gb-text-muted hover:text-gb-text"
+            }`}
+            onClick={() => useRepoStore.getState().openRepo(p)}
+          >
+            {name}
+          </button>
+        );
+      })}
       <div className="flex-1" />
-      <Button variant="ghost" size="sm" icon={HelpCircle} className="text-gb-text-muted" />
     </div>
   );
 }

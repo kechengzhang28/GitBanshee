@@ -18,6 +18,7 @@ interface RepoState {
   scrollTarget: string | null;
   focusedBranch: string | null;
   stashes: StashEntry[];
+  openRepoPaths: string[];
 
   openRepo: (path: string) => Promise<void>;
   loadCommits: (offset: number, limit: number) => Promise<void>;
@@ -68,11 +69,19 @@ export const useRepoStore = create<RepoState>((set, get) => ({
   scrollTarget: null,
   focusedBranch: null,
   stashes: [],
+  openRepoPaths: [],
 
   openRepo: async (path: string) => {
     try {
       const result = await ipc.openRepo(path);
-      set({ path: result.path, commitCount: result.commit_count, error: null });
+      set((state) => ({
+        path: result.path,
+        commitCount: result.commit_count,
+        error: null,
+        openRepoPaths: state.openRepoPaths.includes(result.path)
+          ? state.openRepoPaths
+          : [...state.openRepoPaths, result.path],
+      }));
     } catch (e) {
       set({ error: String(e) });
     }
@@ -147,6 +156,7 @@ export const useRepoStore = create<RepoState>((set, get) => ({
       stashes: [],
       status: [],
       error: null,
+      openRepoPaths: [],
     });
   },
 

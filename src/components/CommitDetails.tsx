@@ -4,6 +4,7 @@ import { getCommitDiff } from "../utils/ipc";
 import type { DiffContent, DiffFile } from "../types";
 import PanelHeader from "./PanelHeader";
 import FileExplorer from "./FileExplorer";
+import DiffSkeleton from "./DiffSkeleton";
 import Button from "./ui/Button";
 import { GitCommitHorizontal, GitPullRequest } from "lucide-react";
 
@@ -102,11 +103,7 @@ export default function CommitDetails({ onViewFile }: Props) {
         <p className="whitespace-pre-wrap text-gb-text">{commit.message}</p>
       </div>
 
-      {loading && (
-        <div className="flex flex-1 items-center justify-center">
-          <p className="text-xs text-gb-text-muted">Loading diff...</p>
-        </div>
-      )}
+      {loading && <DiffSkeleton />}
       {error && (
         <div className="flex flex-1 items-center justify-center px-3">
           <p className="text-xs text-gb-danger">{error}</p>

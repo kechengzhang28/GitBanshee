@@ -17,6 +17,7 @@ interface Props {
   onStashPop: () => void;
   onRebaseClick: () => void;
   onCherryPick: () => void;
+  stashCount: number;
 }
 
 export default function RepoToolbar({
@@ -35,6 +36,7 @@ export default function RepoToolbar({
   onStashPop,
   onRebaseClick,
   onCherryPick,
+  stashCount,
 }: Props) {
   return (
     <div className="flex h-10 items-center gap-0.5 border-b border-gb-border bg-gb-toolbar px-2">
@@ -47,7 +49,7 @@ export default function RepoToolbar({
       <Button variant="ghost" size="sm" icon={GitBranch} onClick={onBranchClick}>Branch</Button>
       <Separator />
       <Button variant="ghost" size="sm" icon={Archive} onClick={onStashClick}>Stash</Button>
-      <Button variant="ghost" size="sm" icon={ArrowUpFromLine} onClick={onStashPop}>Pop</Button>
+      <Button variant="ghost" size="sm" icon={ArrowUpFromLine} onClick={onStashPop} disabled={stashCount === 0} title="Pop most recent stash">Pop</Button>
       <Separator />
       <Button variant="ghost" size="sm" icon={GitMerge} onClick={onRebaseClick} title="Rebase">Rebase</Button>
       <Button variant="ghost" size="sm" icon={GitPullRequest} onClick={onCherryPick} title="Cherry-pick selected commit">Pick</Button>
