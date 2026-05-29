@@ -1,5 +1,6 @@
 mod commands;
 mod git;
+mod graph;
 mod models;
 
 use commands::repo::CommitCache;
