@@ -27,3 +27,6 @@ Thumbs.db
 # Build artifacts
 *.log
 *.dSYM
+
+# Development
+mock-repo/
