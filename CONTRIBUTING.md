@@ -26,6 +26,22 @@ npm run build       # Full installable bundle (.msi/.dmg/.deb)
 npm run build:ui    # Frontend production build only
 ```
 
+## Mock Repo
+
+Create a test repository with branches, merges, and tags for graph inspection:
+
+```bash
+cargo run --bin create_mock_repo     # creates mock-repo/ at workspace root
+```
+
+The resulting `mock-repo/` can be opened in GitKraken or GitBanshee. It contains:
+
+- 10 commits (A–J)
+- 3 branches (main, feature, hotfix)
+- 2 merges (G merges feature, J merges hotfix)
+- 2 tags (v0.1 lightweight, v1.0 annotated)
+- 1 remote tracking ref (origin/main)
+
 ## Checks
 
 ```bash

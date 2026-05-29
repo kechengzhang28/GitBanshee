@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "A Git visualization desktop app with native AI integration"
 authors = ["Kecheng Zhang"]
 edition = "2021"
+default-run = "gitbanshee"
 
 [lib]
 name = "gitbanshee_lib"
