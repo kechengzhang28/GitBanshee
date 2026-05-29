@@ -1,12 +1,12 @@
 import { memo } from "react";
-import type { CommitNode } from "../types";
+import type { PositionedCommit } from "../types";
 import VirtualList from "./VirtualList";
 import { ROW_HEIGHT } from "./constants";
 
 interface MessageColumnProps {
   scrollTop: number;
   visibleRows: number;
-  commits: CommitNode[];
+  commits: PositionedCommit[];
 }
 
 function MessageColumn({ scrollTop, visibleRows, commits }: MessageColumnProps) {
@@ -17,7 +17,7 @@ function MessageColumn({ scrollTop, visibleRows, commits }: MessageColumnProps) 
         rowHeight={ROW_HEIGHT}
         scrollTop={scrollTop}
         visibleRows={visibleRows}
-        getKey={(c) => c.hash}
+        getKey={(c) => c.sha}
         renderItem={(c) => (
           <div className="flex h-full items-center px-3">
             <span className="truncate text-sm leading-[32px] text-gb-text">

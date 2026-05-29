@@ -1,10 +1,10 @@
 import { useEffect, useRef, useCallback, useMemo, useState } from "react";
 import { useRepoStore } from "../stores/repoStore";
-import type { CommitNode } from "../types";
+import type { PositionedCommit } from "../types";
 import BranchColumn from "./BranchColumn";
 import GraphColumn from "./GraphColumn";
 import MessageColumn from "./MessageColumn";
-import { ROW_HEIGHT, LANE_WIDTH, PADDING_X, COMMIT_LIMIT, BRANCH_COLORS } from "./constants";
+import { ROW_HEIGHT, LANE_WIDTH, PADDING_X, COMMIT_LIMIT } from "./constants";
 
 interface Props {
   zoomLevel?: number;
@@ -92,14 +92,14 @@ export default function CommitGraph({ zoomLevel = 1, onZoomChange }: Props) {
   }, []);
 
   const handleSelectCommit = useCallback(
-    (commit: CommitNode | null) => {
+    (commit: PositionedCommit | null) => {
       selectCommit(commit);
     },
     [selectCommit],
   );
 
   const maxLane = useMemo(
-    () => Math.max(1, ...commits.map((c) => c.lane + 1)),
+    () => Math.max(1, ...commits.map((c) => c.col + 1)),
     [commits],
   );
 
@@ -124,7 +124,7 @@ export default function CommitGraph({ zoomLevel = 1, onZoomChange }: Props) {
     return result;
   }, [commits, scrollTop, visibleRows]);
 
-  const selectedHash = selectedCommit?.hash ?? null;
+  const selectedSha = selectedCommit?.sha ?? null;
 
   const handleRowWheel = useCallback((e: React.WheelEvent) => {
     const el = scrollRef.current;
@@ -189,11 +189,11 @@ export default function CommitGraph({ zoomLevel = 1, onZoomChange }: Props) {
           </div>
 
           {visibleCommits.map(({ commit, top }) => {
-            const laneColor = BRANCH_COLORS[commit.lane % BRANCH_COLORS.length];
-            const isSel = commit.hash === selectedHash;
+            const laneColor = commit.color;
+            const isSel = commit.sha === selectedSha;
             return (
               <div
-                key={commit.hash}
+                key={commit.sha}
                 className="pointer-events-auto absolute cursor-pointer"
                 style={{
                   top,

@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use git2::{Repository, Revwalk, Sort};
+use git2::{Oid, Repository, Revwalk, Sort};
 use crate::graph::sort::temporal_topological_sort;
 use crate::graph::layout::{self, assign_columns};
 use crate::graph::path::{compute_branch_paths, compute_curves};
@@ -37,6 +37,7 @@ pub struct CommitGraph {
     ordered_hashes: Vec<String>,
     column_state: Option<layout::ColumnState>,
     has_more: bool,
+    ref_map: HashMap<Oid, Vec<RefInfo>>,
 }
 
 impl CommitGraph {
@@ -50,9 +51,16 @@ impl CommitGraph {
             ordered_hashes: Vec::new(),
             column_state: None,
             has_more: false,
+            ref_map: HashMap::new(),
         };
         graph.load_initial()?;
         Ok(graph)
+    }
+
+    pub fn open_with_count(path: &str, count: usize) -> Result<Self, String> {
+        let mut config = GraphConfig::default();
+        config.initial_count = count;
+        Self::open(path, config)
     }
 
     pub fn refresh(&mut self, branch_filter: Option<&str>) -> Result<(), String> {
@@ -114,6 +122,7 @@ impl CommitGraph {
                 message: node.message.clone(),
                 committer_date: node.committer_date,
                 refs: node.refs.clone(),
+                parents: node.parents.clone(),
             });
         }
 
@@ -155,25 +164,40 @@ impl CommitGraph {
             }
         }
 
-        if let Ok(refs) = self.repo.references() {
-            for r in refs.flatten() {
-                let name = r.name().unwrap_or("");
-                let is_branch = name.starts_with("refs/heads/");
-                let is_remote = name.starts_with("refs/remotes/");
-                let is_tag = name.starts_with("refs/tags/");
+        // Build ref_map once: peel each ref to its commit OID, store RefInfo
+        self.ref_map.clear();
+        if let Ok(references) = self.repo.references() {
+            for r in references.flatten() {
+                let full_name = r.name().unwrap_or("").to_string();
+                let is_branch = full_name.starts_with("refs/heads/");
+                let is_remote = full_name.starts_with("refs/remotes/");
+                let is_tag = full_name.starts_with("refs/tags/");
 
                 let included = match branch_filter {
                     Some(f) if is_tag => f == "tags",
                     Some(f) if is_remote => f == "remotes",
-                    Some(f) => name.contains(f),
+                    Some(f) => full_name.contains(f),
                     None => is_branch || is_remote || is_tag,
                 };
 
-                if included {
-                    if let Some(oid) = r.target() {
-                        walk.push(oid).map_err(|e| e.to_string())?;
-                    }
+                if !included {
+                    continue;
                 }
+
+                // Peel to commit OID (handles annotated tags)
+                let commit_oid = match r.peel_to_commit() {
+                    Ok(c) => c.id(),
+                    Err(_) => continue,
+                };
+
+                walk.push(commit_oid).map_err(|e| e.to_string())?;
+
+                let (kind, display) = classify_ref(&full_name);
+                self.ref_map.entry(commit_oid).or_default().push(RefInfo {
+                    kind,
+                    name: full_name.clone(),
+                    display_name: display.to_string(),
+                });
             }
         }
 
@@ -210,7 +234,8 @@ impl CommitGraph {
                     let author_name = author.name().unwrap_or("Unknown").to_string();
                     let message = commit.message().unwrap_or("").trim().to_string();
 
-                    let mut refs = Vec::new();
+                    // Use pre-built ref_map (O(1) lookup, handles annotated tags)
+                    let mut refs = self.ref_map.get(&id).cloned().unwrap_or_default();
                     let mut is_head = false;
 
                     if let Ok(head) = self.repo.head() {
@@ -221,23 +246,6 @@ impl CommitGraph {
                                     kind: RefKind::Head,
                                     name: shorthand.to_string(),
                                     display_name: shorthand.to_string(),
-                                });
-                            }
-                        }
-                    }
-
-                    if let Ok(references) = self.repo.references() {
-                        for r in references.flatten() {
-                            if r.target() == Some(id) {
-                                let full_name = r.name().unwrap_or("").to_string();
-                                let (kind, display) = classify_ref(&full_name);
-                                if kind == RefKind::Head {
-                                    continue;
-                                }
-                                refs.push(RefInfo {
-                                    kind,
-                                    name: full_name.clone(),
-                                    display_name: display.to_string(),
                                 });
                             }
                         }

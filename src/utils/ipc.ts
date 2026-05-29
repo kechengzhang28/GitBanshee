@@ -1,11 +1,13 @@
 import { invoke } from "@tauri-apps/api/core";
 import type {
   BranchInfo,
-  CommitNode,
+  BranchPath,
   CommitResult,
   DiffContent,
-  GraphData,
+  ForkCurve,
+  MergeCurve,
   OpenRepoResult,
+  PositionedCommit,
   StatusEntry,
 } from "../types";
 
@@ -17,8 +19,18 @@ export async function getCommits(
   path: string,
   offset: number,
   limit: number,
-): Promise<{ commits: CommitNode[]; graph_data: GraphData }> {
-  return invoke<{ commits: CommitNode[]; graph_data: GraphData }>("get_commits", { path, offset, limit });
+): Promise<{
+  commits: PositionedCommit[];
+  branch_paths: BranchPath[];
+  merge_curves: MergeCurve[];
+  fork_curves: ForkCurve[];
+}> {
+  return invoke<{
+    commits: PositionedCommit[];
+    branch_paths: BranchPath[];
+    merge_curves: MergeCurve[];
+    fork_curves: ForkCurve[];
+  }>("get_commits", { path, offset, limit });
 }
 
 export async function getBranches(path: string): Promise<BranchInfo[]> {

@@ -1,37 +1,51 @@
-export interface CommitNode {
-  hash: string;
-  short_hash: string;
-  message: string;
+export interface PositionedCommit {
+  sha: string;
+  short_sha: string;
+  col: number;
+  row: number;
+  color: string;
+  dot_type: "default" | "head" | "merge";
   author: string;
-  email: string;
-  timestamp: number;
+  message: string;
+  committer_date: number;
+  refs: RefInfo[];
   parents: string[];
-  lane: number;
-  row: number;
-  branches: string[];
-  branch_to_display: string;
 }
 
-export interface GraphPoint {
-  lane: number;
-  row: number;
+export interface RefInfo {
+  type: "branch" | "remote_branch" | "tag" | "head";
+  name: string;
+  display_name: string;
 }
 
-export interface PathData {
-  points: GraphPoint[];
+export interface BranchPath {
+  col: number;
+  start_row: number;
+  end_row: number;
   color: string;
 }
 
-export interface LinkData {
-  start: GraphPoint;
-  control: GraphPoint;
-  end: GraphPoint;
+export interface MergeCurve {
+  from_col: number;
+  from_row: number;
+  to_col: number;
+  to_row: number;
   color: string;
 }
 
-export interface GraphData {
-  paths: PathData[];
-  links: LinkData[];
+export interface ForkCurve {
+  from_col: number;
+  from_row: number;
+  to_col: number;
+  to_row: number;
+  color: string;
+}
+
+export interface RenderData {
+  commits: PositionedCommit[];
+  branch_paths: BranchPath[];
+  merge_curves: MergeCurve[];
+  fork_curves: ForkCurve[];
 }
 
 export interface BranchInfo {

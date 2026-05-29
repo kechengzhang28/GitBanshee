@@ -1,4 +1,4 @@
-import type { CommitNode } from "../types";
+import type { PositionedCommit } from "../types";
 
 const ROW_HEIGHT = 32;
 const LANE_WIDTH = 24;
@@ -8,7 +8,7 @@ const PADDING_X = 40;
 
 export function drawLabels(
   ctx: CanvasRenderingContext2D,
-  commits: CommitNode[],
+  commits: PositionedCommit[],
   firstRow: number,
   lastRow: number,
   translateX: number,
@@ -26,9 +26,8 @@ export function drawLabels(
     const c = commits[i];
     if (!c) continue;
 
-    // HEAD label
-    if (c.hash === commits[0]?.hash) {
-      const x = c.lane * LANE_WIDTH + LANE_WIDTH / 2 + PADDING_X + NODE_RADIUS + LABEL_PADDING;
+    if (c.sha === commits[0]?.sha) {
+      const x = c.col * LANE_WIDTH + LANE_WIDTH / 2 + PADDING_X + NODE_RADIUS + LABEL_PADDING;
       const y = i * ROW_HEIGHT + ROW_HEIGHT / 2 + 4;
       ctx.fillText("HEAD", x, y);
     }

@@ -1,6 +1,6 @@
 import type { GlContext } from "./webgl";
 import { createBuffer } from "./webgl";
-import type { CommitNode } from "../types";
+import type { PositionedCommit } from "../types";
 
 const LANE_WIDTH = 24;
 const ROW_HEIGHT = 32;
@@ -47,7 +47,7 @@ export function drawBackground(
 
 export function drawConnectingLines(
   g: GlContext,
-  commits: CommitNode[],
+  commits: PositionedCommit[],
   firstRow: number,
   lastRow: number,
   translateX: number,
@@ -55,7 +55,6 @@ export function drawConnectingLines(
   scale: number,
   width: number,
   height: number,
-  branchColors: string[],
 ) {
   const { gl, programs, locations } = g;
   const positions: number[] = [];
@@ -65,17 +64,17 @@ export function drawConnectingLines(
     const c = commits[i];
     if (!c) continue;
 
-    const sx = c.lane * LANE_WIDTH + LANE_WIDTH / 2 + PADDING_X;
+    const sx = c.col * LANE_WIDTH + LANE_WIDTH / 2 + PADDING_X;
     const sy = i * ROW_HEIGHT + ROW_HEIGHT / 2;
 
     for (const parentHash of c.parents) {
-      const pi = commits.findIndex((p) => p.hash === parentHash);
+      const pi = commits.findIndex((p) => p.sha === parentHash);
       if (pi === -1) continue;
       const pp = commits[pi];
-      const tx = pp.lane * LANE_WIDTH + LANE_WIDTH / 2 + PADDING_X;
+      const tx = pp.col * LANE_WIDTH + LANE_WIDTH / 2 + PADDING_X;
       const ty = pi * ROW_HEIGHT + ROW_HEIGHT / 2;
 
-      const color = hexToRgba(branchColors[c.lane % branchColors.length]);
+      const color = hexToRgba(c.color);
       if (sx === tx) {
         positions.push(sx, sy + NODE_RADIUS, tx, ty - NODE_RADIUS);
         colors.push(...color, ...color);
@@ -96,8 +95,6 @@ export function drawConnectingLines(
   gl.enableVertexAttribArray(locations.colorPos);
   gl.vertexAttribPointer(locations.colorPos, 2, gl.FLOAT, false, 0, 0);
 
-  // Per-segment coloring: since we can't easily do per-vertex colors without
-  // a separate attribute, we draw segments individually.
   gl.uniform2f(locations.colorTranslate, translateX, translateY);
   gl.uniform1f(locations.colorScale, scale);
   gl.uniform2f(locations.colorRes, width, height);
@@ -108,11 +105,11 @@ export function drawConnectingLines(
     const c = commits[i];
     if (!c) continue;
     for (const _ of c.parents) {
-      const pi = commits.findIndex((p) => p.hash === _);
+      const pi = commits.findIndex((p) => p.sha === _);
       if (pi === -1) continue;
-      const col = hexToRgba(branchColors[c.lane % branchColors.length]);
+      const col = hexToRgba(c.color);
       gl.uniform4fv(locations.colorFill, col);
-      const vertCount = 2; // always 2 vertices per segment for now
+      const vertCount = 2;
       gl.drawArrays(gl.LINE_STRIP, offset / 2, vertCount);
       offset += vertCount * 2;
     }
@@ -123,7 +120,7 @@ export function drawConnectingLines(
 
 export function drawNodes(
   g: GlContext,
-  commits: CommitNode[],
+  commits: PositionedCommit[],
   firstRow: number,
   lastRow: number,
   translateX: number,
@@ -132,20 +129,18 @@ export function drawNodes(
   width: number,
   height: number,
   dpr: number,
-  branchColors: string[],
-  selectedHash: string | null,
-  hoveredHash: string | null,
+  selectedSha: string | null,
+  hoveredSha: string | null,
 ) {
   const { gl, programs, locations } = g;
 
-  // Draw regular nodes
   const positions: number[] = [];
   for (let i = firstRow; i < lastRow; i++) {
     const c = commits[i];
     if (!c) continue;
-    if (c.hash === selectedHash || c.hash === hoveredHash) continue;
+    if (c.sha === selectedSha || c.sha === hoveredSha) continue;
     positions.push(
-      c.lane * LANE_WIDTH + LANE_WIDTH / 2 + PADDING_X,
+      c.col * LANE_WIDTH + LANE_WIDTH / 2 + PADDING_X,
       i * ROW_HEIGHT + ROW_HEIGHT / 2,
     );
   }
@@ -163,21 +158,19 @@ export function drawNodes(
       dpr,
       (x, y) => {
         const c = commitAt(commits, x, y);
-        return hexToRgba(branchColors[(c?.lane || 0) % branchColors.length]);
+        return c ? hexToRgba(c.color) : [0.5, 0.5, 0.5, 1.0] as [number, number, number, number];
       },
     );
   }
 
-  // Draw hovered/selected nodes
-  for (const hash of [hoveredHash, selectedHash]) {
-    if (!hash) continue;
-    const c = commits.find((c) => c.hash === hash);
+  for (const sha of [hoveredSha, selectedSha]) {
+    if (!sha) continue;
+    const c = commits.find((c) => c.sha === sha);
     if (!c) continue;
-    const r = hash === selectedHash ? 2.0 : 1.2;
+    const r = sha === selectedSha ? 2.0 : 1.2;
 
-    if (hash === selectedHash) {
-      // Glow
-      const glowPos = [c.lane * LANE_WIDTH + LANE_WIDTH / 2 + PADDING_X, c.row * ROW_HEIGHT + ROW_HEIGHT / 2];
+    if (sha === selectedSha) {
+      const glowPos = [c.col * LANE_WIDTH + LANE_WIDTH / 2 + PADDING_X, c.row * ROW_HEIGHT + ROW_HEIGHT / 2];
       gl.useProgram(programs.glow);
       const gpBuf = createBuffer(gl, new Float32Array(glowPos));
       gl.bindBuffer(gl.ARRAY_BUFFER, gpBuf);
@@ -187,17 +180,16 @@ export function drawNodes(
       gl.uniform1f(locations.glowScale, scale);
       gl.uniform2f(locations.glowRes, width, height);
       gl.uniform1f(locations.glowPointSize, NODE_RADIUS * 6 * dpr);
-      const col = hexToRgba(branchColors[c.lane % branchColors.length]);
-      gl.uniform4fv(locations.glowFill, col);
+      gl.uniform4fv(locations.glowFill, hexToRgba(c.color));
       gl.drawArrays(gl.POINTS, 0, 1);
       gl.deleteBuffer(gpBuf);
     }
 
     drawPointSprites(
       g,
-      [c.lane * LANE_WIDTH + LANE_WIDTH / 2 + PADDING_X, c.row * ROW_HEIGHT + ROW_HEIGHT / 2],
+      [c.col * LANE_WIDTH + LANE_WIDTH / 2 + PADDING_X, c.row * ROW_HEIGHT + ROW_HEIGHT / 2],
       translateX, translateY, scale, width, height, r, dpr,
-      () => hexToRgba(branchColors[c.lane % branchColors.length]),
+      () => hexToRgba(c.color),
     );
   }
 }
@@ -232,18 +224,20 @@ function drawPointSprites(
 }
 
 function commitAt(
-  commits: CommitNode[],
+  commits: PositionedCommit[],
   x: number,
   y: number,
-): CommitNode | undefined {
+): PositionedCommit | undefined {
   return commits.find(
     (c) =>
-      c.lane * LANE_WIDTH + LANE_WIDTH / 2 + PADDING_X === x &&
+      c.col * LANE_WIDTH + LANE_WIDTH / 2 + PADDING_X === x &&
       c.row * ROW_HEIGHT + ROW_HEIGHT / 2 === y,
   );
 }
 
 function hexToRgba(hex: string): [number, number, number, number] {
-  const v = parseInt(hex.replace("#", ""), 16);
-  return [((v >> 16) & 255) / 255, ((v >> 8) & 255) / 255, (v & 255) / 255, 1];
+  const r = parseInt(hex.slice(1, 3), 16) / 255;
+  const g = parseInt(hex.slice(3, 5), 16) / 255;
+  const b = parseInt(hex.slice(5, 7), 16) / 255;
+  return [r, g, b, 1.0];
 }

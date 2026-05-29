@@ -7,5 +7,5 @@ pub mod types;
 
 pub use graph::CommitGraph;
 pub use types::{
-    BranchPath, DotType, ForkCurve, MergeCurve, PositionedCommit, RefInfo, RefKind, RenderData,
+    BranchPath, ForkCurve, MergeCurve, PositionedCommit, RenderData,
 };

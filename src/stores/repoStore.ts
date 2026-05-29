@@ -1,13 +1,13 @@
 import { create } from "zustand";
-import type { BranchInfo, CommitNode, GraphData, StatusEntry } from "../types";
+import type { BranchInfo, PositionedCommit, RenderData, StatusEntry } from "../types";
 import * as ipc from "../utils/ipc";
 
 interface RepoState {
   path: string | null;
   branches: BranchInfo[];
-  commits: CommitNode[];
-  graphData: GraphData | null;
-  selectedCommit: CommitNode | null;
+  commits: PositionedCommit[];
+  renderData: RenderData | null;
+  selectedCommit: PositionedCommit | null;
   commitCount: number;
   status: StatusEntry[];
   loadingStatus: boolean;
@@ -16,7 +16,7 @@ interface RepoState {
   openRepo: (path: string) => Promise<void>;
   loadCommits: (offset: number, limit: number) => Promise<void>;
   loadBranches: () => Promise<void>;
-  selectCommit: (commit: CommitNode | null) => void;
+  selectCommit: (commit: PositionedCommit | null) => void;
   closeRepo: () => void;
 
   loadStatus: () => Promise<void>;
@@ -34,7 +34,7 @@ export const useRepoStore = create<RepoState>((set, get) => ({
   path: null,
   branches: [],
   commits: [],
-  graphData: null,
+  renderData: null,
   selectedCommit: null,
   commitCount: 0,
   status: [],
@@ -54,9 +54,15 @@ export const useRepoStore = create<RepoState>((set, get) => ({
     const { path, commits: existing } = get();
     if (!path) return;
     const response = await ipc.getCommits(path, offset, limit);
+    const newCommits = offset === 0 ? response.commits : [...existing, ...response.commits];
     set({
-      commits: offset === 0 ? response.commits : [...existing, ...response.commits],
-      graphData: response.graph_data,
+      commits: newCommits,
+      renderData: {
+        commits: newCommits,
+        branch_paths: response.branch_paths,
+        merge_curves: response.merge_curves,
+        fork_curves: response.fork_curves,
+      },
     });
   },
 
@@ -67,7 +73,7 @@ export const useRepoStore = create<RepoState>((set, get) => ({
     set({ branches });
   },
 
-  selectCommit: (commit: CommitNode | null) => {
+  selectCommit: (commit: PositionedCommit | null) => {
     set({ selectedCommit: commit });
   },
 
@@ -76,7 +82,7 @@ export const useRepoStore = create<RepoState>((set, get) => ({
       path: null,
       branches: [],
       commits: [],
-      graphData: null,
+      renderData: null,
       selectedCommit: null,
       commitCount: 0,
       status: [],
@@ -138,7 +144,6 @@ export const useRepoStore = create<RepoState>((set, get) => ({
       await ipc.createCommit(path, message, amend);
       await get().loadStatus();
       await get().loadBranches();
-      // Reload commits from scratch after creating one
       set({ commits: [] });
       await get().loadCommits(0, 500);
     } catch (e) {

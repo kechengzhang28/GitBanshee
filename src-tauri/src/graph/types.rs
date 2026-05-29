@@ -20,6 +20,7 @@ pub struct PositionedCommit {
     pub message: String,
     pub committer_date: i64,
     pub refs: Vec<RefInfo>,
+    pub parents: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]

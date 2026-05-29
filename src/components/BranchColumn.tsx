@@ -1,12 +1,12 @@
 import { memo } from "react";
-import type { CommitNode } from "../types";
+import type { PositionedCommit } from "../types";
 import VirtualList from "./VirtualList";
-import { ROW_HEIGHT, BRANCH_COLORS } from "./constants";
+import { ROW_HEIGHT } from "./constants";
 
 interface BranchColumnProps {
   scrollTop: number;
   visibleRows: number;
-  commits: CommitNode[];
+  commits: PositionedCommit[];
 }
 
 function BranchColumn({ scrollTop, visibleRows, commits }: BranchColumnProps) {
@@ -17,21 +17,23 @@ function BranchColumn({ scrollTop, visibleRows, commits }: BranchColumnProps) {
         rowHeight={ROW_HEIGHT}
         scrollTop={scrollTop}
         visibleRows={visibleRows}
-        getKey={(c) => c.hash}
+        getKey={(c) => c.sha}
         renderItem={(c) => {
-          if (!c.branches || c.branches.length === 0) return null;
-          const color = BRANCH_COLORS[c.lane % BRANCH_COLORS.length];
+          if (!c.refs || c.refs.length === 0) return null;
+          const branchRefs = c.refs.filter(r => r.type === "branch" || r.type === "remote_branch");
+          if (branchRefs.length === 0) return null;
+          const displayName = branchRefs[0].display_name;
           return (
             <div className="flex h-full items-center gap-1 px-2">
               <span
                 className="inline-block h-2 w-2 shrink-0 rounded-full"
-                style={{ backgroundColor: color }}
+                style={{ backgroundColor: c.color }}
               />
               <span
                 className="truncate text-xs leading-[32px]"
-                style={{ color }}
+                style={{ color: c.color }}
               >
-                {c.branch_to_display}
+                {displayName}
               </span>
             </div>
           );

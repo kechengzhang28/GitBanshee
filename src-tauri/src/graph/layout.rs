@@ -106,6 +106,16 @@ pub fn assign_columns(
         commit_col.insert(sha.clone(), col);
     }
 
+    // Close all remaining open segments
+    let last_row = ordered_hashes.len().saturating_sub(1);
+    for col_segs in &mut columns {
+        if let Some(last) = col_segs.last_mut() {
+            if last.end_row == ROW_INF {
+                last.end_row = last_row;
+            }
+        }
+    }
+
     ColumnState { columns, commit_col, commit_row }
 }
 

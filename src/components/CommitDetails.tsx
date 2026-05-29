@@ -22,7 +22,7 @@ export default function CommitDetails({ onViewFile }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
 
-  const hash = commit?.hash ?? null;
+  const hash = commit?.sha ?? null;
 
   useEffect(() => {
     if (!path || !hash) {
@@ -65,14 +65,14 @@ export default function CommitDetails({ onViewFile }: Props) {
         <div className="flex items-center justify-between">
           <span>
             <span className="text-gb-text-muted">Hash</span>{" "}
-            <span className="font-mono text-gb-text">{commit.short_hash}</span>
+            <span className="font-mono text-gb-text">{commit.short_sha}</span>
           </span>
           {!currentBranch && (
             <Button
               variant="ghost"
               size="sm"
               icon={GitCommitHorizontal}
-              onClick={() => checkoutCommit(commit.hash)}
+              onClick={() => checkoutCommit(commit.sha)}
               title="Checkout this commit"
             >
               Checkout
@@ -85,7 +85,7 @@ export default function CommitDetails({ onViewFile }: Props) {
         </div>
         <div>
           <span className="text-gb-text-muted">Date</span>{" "}
-          <span className="text-gb-text">{new Date(commit.timestamp * 1000).toLocaleString()}</span>
+          <span className="text-gb-text">{new Date(commit.committer_date * 1000).toLocaleString()}</span>
         </div>
         <p className="whitespace-pre-wrap text-gb-text">{commit.message}</p>
       </div>

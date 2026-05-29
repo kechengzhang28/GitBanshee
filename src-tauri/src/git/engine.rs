@@ -1,7 +1,5 @@
-use crate::git::graph::{assign_decorators, compute_graph_layout};
-use crate::models::{BranchInfo, CommitNode, DiffContent, DiffFile, DiffHunk, DiffLine, GraphData};
+use crate::models::{BranchInfo, DiffContent, DiffFile, DiffHunk, DiffLine};
 use git2::{BranchType, DiffOptions, Repository, Sort};
-use std::collections::HashMap;
 
 pub fn open_repo(path: &str) -> Result<Repository, git2::Error> {
     Repository::open(path)
@@ -12,38 +10,6 @@ pub fn count_commits(repo: &Repository) -> Result<usize, git2::Error> {
     revwalk.set_sorting(Sort::TOPOLOGICAL | Sort::TIME)?;
     push_all_branches(repo, &mut revwalk)?;
     Ok(revwalk.count())
-}
-
-pub fn get_all_commits(repo: &Repository) -> Result<(Vec<CommitNode>, GraphData), git2::Error> {
-    let mut revwalk = repo.revwalk()?;
-    revwalk.set_sorting(Sort::TOPOLOGICAL | Sort::TIME)?;
-    push_all_branches(repo, &mut revwalk)?;
-
-    let oids: Vec<git2::Oid> = revwalk.filter_map(|r| r.ok()).collect();
-    let mut commits = Vec::with_capacity(oids.len());
-
-    for (row, oid) in oids.iter().enumerate() {
-        let commit = repo.find_commit(*oid)?;
-        let parents: Vec<String> = commit.parent_ids().map(|p| p.to_string()).collect();
-        commits.push(CommitNode {
-            hash: oid.to_string(),
-            short_hash: oid.to_string().chars().take(7).collect(),
-            message: commit.message().unwrap_or("").to_string(),
-            author: commit.author().name().unwrap_or("").to_string(),
-            email: commit.author().email().unwrap_or("").to_string(),
-            timestamp: commit.time().seconds(),
-            parents,
-            lane: 0,
-            row,
-            branches: vec![],
-            branch_to_display: String::new(),
-        });
-    }
-
-    let graph_data = compute_graph_layout(&mut commits);
-    let decorators = build_decorators(repo)?;
-    assign_decorators(&mut commits, &decorators);
-    Ok((commits, graph_data))
 }
 
 fn push_all_branches(repo: &Repository, revwalk: &mut git2::Revwalk) -> Result<(), git2::Error> {
@@ -60,19 +26,6 @@ fn push_all_branches(repo: &Repository, revwalk: &mut git2::Revwalk) -> Result<(
         }
     }
     Ok(())
-}
-
-fn build_decorators(repo: &Repository) -> Result<HashMap<String, Vec<String>>, git2::Error> {
-    let mut map: HashMap<String, Vec<String>> = HashMap::new();
-    for reference in repo.references()? {
-        let r = reference?;
-        if let (Some(name), Some(target)) = (r.name(), r.target()) {
-            map.entry(target.to_string())
-                .or_default()
-                .push(name.to_string());
-        }
-    }
-    Ok(map)
 }
 
 pub fn get_branches(repo: &Repository) -> Result<Vec<BranchInfo>, git2::Error> {
