@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use git2::{Oid, Repository, Revwalk, Sort};
+use git2::{Oid, Repository, Sort};
 use crate::graph::sort::temporal_topological_sort;
 use crate::graph::layout::{self, assign_columns};
 use crate::graph::path::{compute_branch_paths, compute_curves};
@@ -31,7 +31,7 @@ impl Default for GraphConfig {
 
 pub struct CommitGraph {
     repo: Repository,
-    walk: Option<Revwalk<'static>>,
+    branch_filter: Option<String>,
     config: GraphConfig,
     nodes: HashMap<String, CommitNode>,
     ordered_hashes: Vec<String>,
@@ -45,7 +45,7 @@ impl CommitGraph {
         let repo = Repository::open(path).map_err(|e| e.to_string())?;
         let mut graph = Self {
             repo,
-            walk: None,
+            branch_filter: None,
             config,
             nodes: HashMap::new(),
             ordered_hashes: Vec::new(),
@@ -67,8 +67,7 @@ impl CommitGraph {
         self.nodes.clear();
         self.ordered_hashes.clear();
         self.column_state = None;
-        self.walk = None;
-        self.start_walk(branch_filter)?;
+        self.branch_filter = branch_filter.map(|s| s.to_string());
         self.load_commits(self.config.initial_count)?;
         self.sort_and_layout();
         Ok(())
@@ -148,96 +147,81 @@ impl CommitGraph {
 
 impl CommitGraph {
     fn load_initial(&mut self) -> Result<(), String> {
-        self.start_walk(None)?;
         self.load_commits(self.config.initial_count)?;
         self.sort_and_layout();
         Ok(())
     }
 
-    fn start_walk(&mut self, branch_filter: Option<&str>) -> Result<(), String> {
+    fn load_commits(&mut self, count: usize) -> Result<bool, String> {
+        // Create a fresh Revwalk (no longer persisted, avoids unsafe transmute)
         let mut walk = self.repo.revwalk().map_err(|e| e.to_string())?;
         walk.set_sorting(Sort::TIME).map_err(|e| e.to_string())?;
 
+        // Push HEAD
         if let Ok(head) = self.repo.head() {
             if let Some(oid) = head.target() {
                 walk.push(oid).map_err(|e| e.to_string())?;
             }
         }
 
-        // Build ref_map once: peel each ref to its commit OID, store RefInfo
-        self.ref_map.clear();
-        if let Ok(references) = self.repo.references() {
-            for r in references.flatten() {
-                let full_name = r.name().unwrap_or("").to_string();
-                let is_branch = full_name.starts_with("refs/heads/");
-                let is_remote = full_name.starts_with("refs/remotes/");
-                let is_tag = full_name.starts_with("refs/tags/");
+        // Build ref_map and push all refs (only on first load)
+        if self.ref_map.is_empty() {
+            if let Ok(references) = self.repo.references() {
+                for r in references.flatten() {
+                    let full_name = r.name().unwrap_or("").to_string();
+                    let is_branch = full_name.starts_with("refs/heads/");
+                    let is_remote = full_name.starts_with("refs/remotes/");
+                    let is_tag = full_name.starts_with("refs/tags/");
 
-                let included = match branch_filter {
-                    Some(f) if is_tag => f == "tags",
-                    Some(f) if is_remote => f == "remotes",
-                    Some(f) => full_name.contains(f),
-                    None => is_branch || is_remote || is_tag,
-                };
+                    let included = match self.branch_filter.as_deref() {
+                        Some(f) if is_tag => f == "tags",
+                        Some(f) if is_remote => f == "remotes",
+                        Some(f) => full_name.contains(f),
+                        None => is_branch || is_remote || is_tag,
+                    };
 
-                if !included {
-                    continue;
+                    if !included {
+                        continue;
+                    }
+
+                    let commit_oid = match r.peel_to_commit() {
+                        Ok(c) => c.id(),
+                        Err(_) => continue,
+                    };
+                    walk.push(commit_oid).map_err(|e| e.to_string())?;
+
+                    let (kind, display) = classify_ref(&full_name);
+                    self.ref_map.entry(commit_oid).or_default().push(RefInfo {
+                        kind,
+                        name: full_name.clone(),
+                        display_name: display.to_string(),
+                    });
                 }
-
-                // Peel to commit OID (handles annotated tags)
-                let commit_oid = match r.peel_to_commit() {
-                    Ok(c) => c.id(),
-                    Err(_) => continue,
-                };
-
-                walk.push(commit_oid).map_err(|e| e.to_string())?;
-
-                let (kind, display) = classify_ref(&full_name);
-                self.ref_map.entry(commit_oid).or_default().push(RefInfo {
-                    kind,
-                    name: full_name.clone(),
-                    display_name: display.to_string(),
-                });
             }
         }
 
-        self.walk = Some(unsafe { std::mem::transmute(walk) });
-        Ok(())
-    }
-
-    fn load_commits(&mut self, count: usize) -> Result<bool, String> {
-        let walk = match self.walk.as_mut() {
-            Some(w) => w,
-            None => return Ok(false),
-        };
-
         let mut loaded = 0;
-
         loop {
             match walk.next() {
                 Some(Ok(id)) => {
                     if self.nodes.contains_key(&id.to_string()) {
-                        continue;
+                        continue; // Skip already-loaded commits
                     }
 
                     let commit = match self.repo.find_commit(id) {
                         Ok(c) => c,
                         Err(_) => continue,
                     };
-
                     let sha = id.to_string();
                     let parents: Vec<String> = commit.parents().map(|p| p.id().to_string()).collect();
                     let author = commit.author();
                     let committer = commit.committer();
-
                     let time = committer.when().seconds();
                     let author_name = author.name().unwrap_or("Unknown").to_string();
                     let message = commit.message().unwrap_or("").trim().to_string();
 
-                    // Use pre-built ref_map (O(1) lookup, handles annotated tags)
                     let mut refs = self.ref_map.get(&id).cloned().unwrap_or_default();
                     let mut is_head = false;
-
                     if let Ok(head) = self.repo.head() {
                         if head.target() == Some(id) {
                             is_head = true;
@@ -261,7 +245,6 @@ impl CommitGraph {
                         refs,
                         is_head,
                     });
-
                     loaded += 1;
                     if loaded >= count {
                         self.has_more = true;
