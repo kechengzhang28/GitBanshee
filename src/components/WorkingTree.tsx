@@ -9,7 +9,6 @@ export default function WorkingTree() {
   const unstageFile = useRepoStore((s) => s.unstageFile);
   const stageAll = useRepoStore((s) => s.stageAll);
   const createCommit = useRepoStore((s) => s.createCommit);
-  const error = useRepoStore((s) => s.error);
 
   const [summary, setSummary] = useState("");
   const [description, setDescription] = useState("");
@@ -71,12 +70,6 @@ export default function WorkingTree() {
           </button>
         </div>
       </div>
-
-      {error && (
-        <div className="bg-gb-danger/10 px-2 py-1 text-xs text-gb-danger">
-          {error}
-        </div>
-      )}
 
       <div className="flex flex-1 overflow-hidden">
         <div className="flex flex-1 flex-col overflow-hidden border-t border-gb-border">

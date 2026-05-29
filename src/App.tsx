@@ -1,6 +1,7 @@
 import { useRepoStore } from "./stores/repoStore";
 import RepoList from "./components/RepoList";
 import RepoView from "./components/RepoView";
+import ToastContainer from "./components/ToastContainer";
 import "./utils/init";
 
 function App() {
@@ -9,6 +10,7 @@ function App() {
   return (
     <div className="h-screen overflow-hidden rounded-b-lg bg-gb-bg will-change-transform">
       {path ? <RepoView /> : <RepoList />}
+      <ToastContainer />
     </div>
   );
 }

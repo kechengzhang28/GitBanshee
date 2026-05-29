@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import type { BranchInfo, PositionedCommit, RenderData, StatusEntry } from "../types";
 import * as ipc from "../utils/ipc";
+import { toast } from "./toastStore";
 
 interface RepoState {
   path: string | null;
@@ -58,24 +59,32 @@ export const useRepoStore = create<RepoState>((set, get) => ({
   loadCommits: async (offset: number, limit: number) => {
     const { path, commits: existing } = get();
     if (!path) return;
-    const response = await ipc.getCommits(path, offset, limit);
-    const newCommits = offset === 0 ? response.commits : [...existing, ...response.commits];
-    set({
-      commits: newCommits,
-      renderData: {
+    try {
+      const response = await ipc.getCommits(path, offset, limit);
+      const newCommits = offset === 0 ? response.commits : [...existing, ...response.commits];
+      set({
         commits: newCommits,
-        branch_paths: response.branch_paths,
-        merge_curves: response.merge_curves,
-        fork_curves: response.fork_curves,
-      },
-    });
+        renderData: {
+          commits: newCommits,
+          branch_paths: response.branch_paths,
+          merge_curves: response.merge_curves,
+          fork_curves: response.fork_curves,
+        },
+      });
+    } catch (e) {
+      toast("error", String(e));
+    }
   },
 
   loadBranches: async () => {
     const { path } = get();
     if (!path) return;
-    const branches = await ipc.getBranches(path);
-    set({ branches });
+    try {
+      const branches = await ipc.getBranches(path);
+      set({ branches });
+    } catch (e) {
+      toast("error", String(e));
+    }
   },
 
   selectCommit: (commit: PositionedCommit | null) => {
@@ -115,7 +124,7 @@ export const useRepoStore = create<RepoState>((set, get) => ({
       const status = await ipc.getStatus(path);
       set({ status, error: null });
     } catch (e) {
-      set({ error: String(e) });
+      toast("error", String(e));
     } finally {
       set({ loadingStatus: false });
     }
@@ -128,7 +137,7 @@ export const useRepoStore = create<RepoState>((set, get) => ({
       await ipc.stageFile(path, filePath);
       await get().loadStatus();
     } catch (e) {
-      set({ error: String(e) });
+      toast("error", String(e));
     }
   },
 
@@ -139,7 +148,7 @@ export const useRepoStore = create<RepoState>((set, get) => ({
       await ipc.unstageFile(path, filePath);
       await get().loadStatus();
     } catch (e) {
-      set({ error: String(e) });
+      toast("error", String(e));
     }
   },
 
@@ -150,7 +159,7 @@ export const useRepoStore = create<RepoState>((set, get) => ({
       await ipc.stageAll(path);
       await get().loadStatus();
     } catch (e) {
-      set({ error: String(e) });
+      toast("error", String(e));
     }
   },
 
@@ -158,13 +167,14 @@ export const useRepoStore = create<RepoState>((set, get) => ({
     const { path } = get();
     if (!path) return;
     try {
-      await ipc.createCommit(path, message, amend);
+      const result = await ipc.createCommit(path, message, amend);
       await get().loadStatus();
       await get().loadBranches();
       set({ commits: [] });
       await get().loadCommits(0, 500);
+      toast("success", `Commit ${result.short_hash} ${amend ? "amended" : "created"}`);
     } catch (e) {
-      set({ error: String(e) });
+      toast("error", String(e));
     }
   },
 
@@ -174,8 +184,9 @@ export const useRepoStore = create<RepoState>((set, get) => ({
     try {
       await ipc.createBranch(path, name);
       await get().loadBranches();
+      toast("success", `Branch '${name}' created`);
     } catch (e) {
-      set({ error: String(e) });
+      toast("error", String(e));
     }
   },
 
@@ -185,8 +196,9 @@ export const useRepoStore = create<RepoState>((set, get) => ({
     try {
       await ipc.deleteBranch(path, name);
       await get().loadBranches();
+      toast("info", `Branch '${name}' deleted`);
     } catch (e) {
-      set({ error: String(e) });
+      toast("error", String(e));
     }
   },
 
@@ -199,8 +211,9 @@ export const useRepoStore = create<RepoState>((set, get) => ({
       await get().loadCommits(0, 500);
       await get().loadBranches();
       await get().loadStatus();
+      toast("info", `Switched to '${name}'`);
     } catch (e) {
-      set({ error: String(e) });
+      toast("error", String(e));
     }
   },
 
@@ -213,8 +226,9 @@ export const useRepoStore = create<RepoState>((set, get) => ({
       await get().loadCommits(0, 500);
       await get().loadBranches();
       await get().loadStatus();
+      toast("info", `Detached HEAD at ${hash.slice(0, 7)}`);
     } catch (e) {
-      set({ error: String(e) });
+      toast("error", String(e));
     }
   },
 }));

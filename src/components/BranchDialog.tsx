@@ -14,38 +14,22 @@ export default function BranchDialog({ open, onClose }: Props) {
   const checkoutBranch = useRepoStore((s) => s.checkoutBranch);
 
   const [name, setName] = useState("");
-  const [error, setError] = useState<string | null>(null);
 
   if (!open) return null;
 
   const handleCreate = async () => {
     if (!name.trim()) return;
-    setError(null);
-    try {
-      await createBranch(name.trim());
-      setName("");
-    } catch (e) {
-      setError(String(e));
-    }
+    await createBranch(name.trim());
+    setName("");
   };
 
   const handleDelete = async (branchName: string) => {
-    setError(null);
-    try {
-      await deleteBranch(branchName);
-    } catch (e) {
-      setError(String(e));
-    }
+    await deleteBranch(branchName);
   };
 
   const handleSwitch = async (branchName: string) => {
-    setError(null);
-    try {
-      await checkoutBranch(branchName);
-      onClose();
-    } catch (e) {
-      setError(String(e));
-    }
+    await checkoutBranch(branchName);
+    onClose();
   };
 
   return (
@@ -114,9 +98,6 @@ export default function BranchDialog({ open, onClose }: Props) {
               Create
             </button>
           </div>
-          {error && (
-            <p className="mt-1 text-xs text-gb-danger">{error}</p>
-          )}
         </div>
       </div>
     </div>
