@@ -50,6 +50,7 @@ function GraphColumn({ scrollTop, colWidth, zoomLevel = 1 }: GraphColumnProps) {
     const pad = PADDING_X * z;
     const r = NODE_RADIUS * Math.max(0.5, z);
     const lineW = 1.5 * z;
+    const cr = 4 * z;
 
     const laneX = (col: number) => col * lw + lw / 2 + pad;
     const rowY = (row: number) => -scrollTop + row * ROW_HEIGHT + ROW_HEIGHT / 2;
@@ -85,7 +86,8 @@ function GraphColumn({ scrollTop, colWidth, zoomLevel = 1 }: GraphColumnProps) {
           ctx.strokeStyle = mc.color;
           ctx.beginPath();
           ctx.moveTo(sx, sy);
-          ctx.quadraticCurveTo(ex, sy, ex, ey);
+          ctx.arcTo(ex, sy, ex, ey, cr);
+          ctx.lineTo(ex, ey);
           ctx.stroke();
         }
 
@@ -102,7 +104,8 @@ function GraphColumn({ scrollTop, colWidth, zoomLevel = 1 }: GraphColumnProps) {
           ctx.strokeStyle = fc.color;
           ctx.beginPath();
           ctx.moveTo(sx, sy);
-          ctx.quadraticCurveTo(ex, sy, ex, ey);
+          ctx.arcTo(ex, sy, ex, ey, cr);
+          ctx.lineTo(ex, ey);
           ctx.stroke();
         }
       }
