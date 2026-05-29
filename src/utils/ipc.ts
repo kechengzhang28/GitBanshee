@@ -101,3 +101,15 @@ export async function checkoutCommit(
 ): Promise<void> {
   return invoke("checkout_commit", { path, hash });
 }
+
+export async function fetchRemote(path: string, remoteName: string): Promise<string> {
+  return invoke<string>("fetch_remote", { path, remoteName });
+}
+
+export async function pull(path: string, remoteName: string, branch: string): Promise<string> {
+  return invoke<string>("pull", { path, remoteName, branch });
+}
+
+export async function push(path: string, remoteName: string): Promise<string> {
+  return invoke<string>("push", { path, remoteName });
+}

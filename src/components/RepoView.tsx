@@ -17,6 +17,8 @@ export default function RepoView() {
   const error = useRepoStore((s) => s.error);
   const path = useRepoStore((s) => s.path);
   const loadStatus = useRepoStore((s) => s.loadStatus);
+  const pullRepo = useRepoStore((s) => s.pull);
+  const pushRepo = useRepoStore((s) => s.push);
   const [showLeft, setShowLeft] = useState(true);
   const [showCommit, setShowCommit] = useState(true);
   const [showAI, setShowAI] = useState(false);
@@ -53,6 +55,8 @@ export default function RepoView() {
         onToggleAI={() => setShowAI((v) => !v)}
         onToggleTree={() => setShowTree((v) => !v)}
         onBranchClick={() => setShowBranchDialog(true)}
+        onPull={() => pullRepo()}
+        onPush={() => pushRepo()}
       />
       <div className="flex flex-1 overflow-hidden">
         {showLeft && (

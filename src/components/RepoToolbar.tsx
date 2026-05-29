@@ -11,6 +11,8 @@ interface Props {
   onToggleAI: () => void;
   onToggleTree: () => void;
   onBranchClick: () => void;
+  onPull: () => void;
+  onPush: () => void;
 }
 
 export default function RepoToolbar({
@@ -23,14 +25,16 @@ export default function RepoToolbar({
   onToggleAI,
   onToggleTree,
   onBranchClick,
+  onPull,
+  onPush,
 }: Props) {
   return (
     <div className="flex h-10 items-center gap-0.5 border-b border-gb-border bg-gb-toolbar px-2">
       <Button variant="ghost" size="sm" icon={Undo2}>Undo</Button>
       <Button variant="ghost" size="sm" icon={Redo2}>Redo</Button>
       <Separator />
-      <Button variant="ghost" size="sm" icon={Download} className="text-gb-accent">Pull</Button>
-      <Button variant="ghost" size="sm" icon={Upload}>Push</Button>
+      <Button variant="ghost" size="sm" icon={Download} className="text-gb-accent" onClick={onPull}>Pull</Button>
+      <Button variant="ghost" size="sm" icon={Upload} onClick={onPush}>Push</Button>
       <Separator />
       <Button variant="ghost" size="sm" icon={GitBranch} onClick={onBranchClick}>Branch</Button>
       <Separator />

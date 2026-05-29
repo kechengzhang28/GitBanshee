@@ -32,6 +32,9 @@ interface RepoState {
   deleteBranch: (name: string) => Promise<void>;
   checkoutBranch: (name: string) => Promise<void>;
   checkoutCommit: (hash: string) => Promise<void>;
+  fetchRemote: () => Promise<void>;
+  pull: () => Promise<void>;
+  push: () => Promise<void>;
 }
 
 export const useRepoStore = create<RepoState>((set, get) => ({
@@ -227,6 +230,43 @@ export const useRepoStore = create<RepoState>((set, get) => ({
       await get().loadBranches();
       await get().loadStatus();
       toast("info", `Detached HEAD at ${hash.slice(0, 7)}`);
+    } catch (e) {
+      toast("error", String(e));
+    }
+  },
+
+  fetchRemote: async () => {
+    const { path } = get();
+    if (!path) return;
+    try {
+      const msg = await ipc.fetchRemote(path, "origin");
+      toast("info", msg);
+    } catch (e) {
+      toast("error", String(e));
+    }
+  },
+
+  pull: async () => {
+    const { path, branches } = get();
+    if (!path) return;
+    const current = branches.find((b) => b.is_head)?.name ?? "main";
+    try {
+      const msg = await ipc.pull(path, "origin", current);
+      toast("success", msg);
+      set({ commits: [] });
+      await get().loadCommits(0, 500);
+      await get().loadBranches();
+    } catch (e) {
+      toast("error", String(e));
+    }
+  },
+
+  push: async () => {
+    const { path } = get();
+    if (!path) return;
+    try {
+      const msg = await ipc.push(path, "origin");
+      toast("success", msg);
     } catch (e) {
       toast("error", String(e));
     }

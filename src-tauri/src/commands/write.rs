@@ -1,5 +1,5 @@
 use crate::commands::repo::CommitCache;
-use crate::git::{branch, engine, worktree};
+use crate::git::{branch, engine, remote, worktree};
 use crate::models::StatusEntry;
 use serde::Serialize;
 
@@ -83,4 +83,29 @@ pub fn checkout_commit(
     engine::checkout_commit(&repo, &hash).map_err(|e| e.to_string())?;
     cache.clear();
     Ok(())
+}
+
+#[tauri::command]
+pub fn fetch_remote(path: String, remote_name: String) -> Result<String, String> {
+    let repo = engine::open_repo(&path).map_err(|e| e.to_string())?;
+    remote::fetch(&repo, &remote_name)
+}
+
+#[tauri::command]
+pub fn pull(
+    cache: tauri::State<'_, CommitCache>,
+    path: String,
+    remote_name: String,
+    branch: String,
+) -> Result<String, String> {
+    let repo = engine::open_repo(&path).map_err(|e| e.to_string())?;
+    let result = remote::pull(&repo, &remote_name, &branch)?;
+    cache.clear();
+    Ok(result)
+}
+
+#[tauri::command]
+pub fn push(path: String, remote_name: String) -> Result<String, String> {
+    let repo = engine::open_repo(&path).map_err(|e| e.to_string())?;
+    remote::push(&repo, &remote_name)
 }
