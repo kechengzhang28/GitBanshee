@@ -25,6 +25,7 @@ export default function CommitGraph({ zoomLevel = 1, onZoomChange }: Props) {
   const loadCommits = useRepoStore((s) => s.loadCommits);
   const loadBranches = useRepoStore((s) => s.loadBranches);
   const selectCommit = useRepoStore((s) => s.selectCommit);
+  const scrollTarget = useRepoStore((s) => s.scrollTarget);
 
   const commitsLenRef = useRef(0);
   commitsLenRef.current = commits.length;
@@ -47,6 +48,16 @@ export default function CommitGraph({ zoomLevel = 1, onZoomChange }: Props) {
       loadBranches();
     }
   }, [path, loadMore, loadBranches]);
+
+  useEffect(() => {
+    if (!scrollTarget) return;
+    const idx = commits.findIndex((c) => c.sha === scrollTarget);
+    if (idx === -1) return;
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollTop = idx * ROW_HEIGHT;
+    useRepoStore.setState({ scrollTarget: null });
+  }, [scrollTarget, commits]);
 
   useEffect(() => {
     const el = overlayRef.current?.parentElement;

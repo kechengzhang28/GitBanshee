@@ -12,11 +12,14 @@ interface RepoState {
   status: StatusEntry[];
   loadingStatus: boolean;
   error: string | null;
+  scrollTarget: string | null;
+  focusedBranch: string | null;
 
   openRepo: (path: string) => Promise<void>;
   loadCommits: (offset: number, limit: number) => Promise<void>;
   loadBranches: () => Promise<void>;
   selectCommit: (commit: PositionedCommit | null) => void;
+  focusCommit: (sha: string, branchName?: string) => void;
   closeRepo: () => void;
 
   loadStatus: () => Promise<void>;
@@ -40,6 +43,8 @@ export const useRepoStore = create<RepoState>((set, get) => ({
   status: [],
   loadingStatus: false,
   error: null,
+  scrollTarget: null,
+  focusedBranch: null,
 
   openRepo: async (path: string) => {
     try {
@@ -74,7 +79,17 @@ export const useRepoStore = create<RepoState>((set, get) => ({
   },
 
   selectCommit: (commit: PositionedCommit | null) => {
-    set({ selectedCommit: commit });
+    set({ selectedCommit: commit, focusedBranch: null });
+  },
+
+  focusCommit: (sha: string, branchName?: string) => {
+    const { commits } = get();
+    const found = sha ? commits.find((c) => c.sha === sha || c.sha.startsWith(sha)) : undefined;
+    set({
+      focusedBranch: branchName ?? null,
+      selectedCommit: found ?? null,
+      scrollTarget: found?.sha ?? null,
+    });
   },
 
   closeRepo: () => {
@@ -85,6 +100,8 @@ export const useRepoStore = create<RepoState>((set, get) => ({
       renderData: null,
       selectedCommit: null,
       commitCount: 0,
+      scrollTarget: null,
+      focusedBranch: null,
       status: [],
       error: null,
     });
