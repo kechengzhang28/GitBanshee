@@ -4,6 +4,7 @@ import type { PositionedCommit } from "../types";
 import BranchColumn from "./BranchColumn";
 import GraphColumn from "./GraphColumn";
 import MessageColumn from "./MessageColumn";
+import ContextMenu, { type ContextMenuItem } from "./ContextMenu";
 import { ROW_HEIGHT, LANE_WIDTH, PADDING_X, COMMIT_LIMIT,
   SCROLL_THRESHOLD, BRANCH_COL_WIDTH, HEADER_HEIGHT,
   ZOOM_MIN, ZOOM_MAX, ZOOM_STEP, ZOOM_STEP_OUT, MIN_GRAPH_COL_WIDTH } from "./constants";
@@ -107,6 +108,10 @@ export default function CommitGraph({ zoomLevel = 1, onZoomChange, onToggleDetai
 
   const selectedSha = selectedCommit?.sha ?? null;
 
+  const [contextMenu, setContextMenu] = useState<{
+    x: number; y: number; commit: PositionedCommit;
+  } | null>(null);
+
   const handleRowClick = useCallback(
     (commit: PositionedCommit) => {
       const isSel = commit.sha === selectedSha;
@@ -117,6 +122,13 @@ export default function CommitGraph({ zoomLevel = 1, onZoomChange, onToggleDetai
       onToggleDetail?.();
     },
     [selectedSha, selectCommit, onToggleDetail],
+  );
+
+  const handleContextMenu = useCallback(
+    (e: React.MouseEvent, commit: PositionedCommit) => {
+      e.preventDefault();
+      setContextMenu({ x: e.clientX, y: e.clientY, commit });
+    }, []
   );
 
   const maxLane = useMemo(
@@ -233,12 +245,42 @@ export default function CommitGraph({ zoomLevel = 1, onZoomChange, onToggleDetai
                   }
                 }}
                 onClick={() => handleRowClick(commit)}
+                onContextMenu={(e) => handleContextMenu(e, commit)}
                 onWheel={handleRowWheel}
               />
             );
           })}
         </div>
       </div>
+      {contextMenu && (
+        <ContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          items={buildContextMenuItems(
+            contextMenu.commit,
+            () => setContextMenu(null)
+          )}
+          onClose={() => setContextMenu(null)}
+        />
+      )}
     </div>
   );
+}
+
+function buildContextMenuItems(
+  commit: PositionedCommit,
+  onDone: () => void
+): ContextMenuItem[] {
+  const store = useRepoStore.getState();
+  return [
+    { label: "Cherry Pick", shortcut: "Ctrl+Shift+P",
+      onClick: () => { store.cherryPick(commit.sha); onDone(); } },
+    { label: "Checkout Commit",
+      onClick: () => { store.checkoutCommit(commit.sha); onDone(); } },
+    { label: "Copy SHA",
+      onClick: () => { navigator.clipboard.writeText(commit.sha); onDone(); } },
+    { separator: true },
+    { label: "Create Branch Here",
+      onClick: () => { onDone(); } },
+  ];
 }
