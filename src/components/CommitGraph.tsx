@@ -9,9 +9,10 @@ import { ROW_HEIGHT, LANE_WIDTH, PADDING_X, COMMIT_LIMIT } from "./constants";
 interface Props {
   zoomLevel?: number;
   onZoomChange?: (z: number) => void;
+  onToggleDetail?: () => void;
 }
 
-export default function CommitGraph({ zoomLevel = 1, onZoomChange }: Props) {
+export default function CommitGraph({ zoomLevel = 1, onZoomChange, onToggleDetail }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
   const offsetRef = useRef(0);
@@ -102,11 +103,18 @@ export default function CommitGraph({ zoomLevel = 1, onZoomChange }: Props) {
     };
   }, []);
 
-  const handleSelectCommit = useCallback(
-    (commit: PositionedCommit | null) => {
-      selectCommit(commit);
+  const selectedSha = selectedCommit?.sha ?? null;
+
+  const handleRowClick = useCallback(
+    (commit: PositionedCommit) => {
+      const isSel = commit.sha === selectedSha;
+      if (!isSel) {
+        selectCommit(commit);
+        return;
+      }
+      onToggleDetail?.();
     },
-    [selectCommit],
+    [selectedSha, selectCommit, onToggleDetail],
   );
 
   const maxLane = useMemo(
@@ -135,7 +143,6 @@ export default function CommitGraph({ zoomLevel = 1, onZoomChange }: Props) {
     return result;
   }, [commits, scrollTop, visibleRows]);
 
-  const selectedSha = selectedCommit?.sha ?? null;
 
   const handleRowWheel = useCallback((e: React.WheelEvent) => {
     const el = scrollRef.current;
@@ -223,7 +230,7 @@ export default function CommitGraph({ zoomLevel = 1, onZoomChange }: Props) {
                     (e.target as HTMLElement).style.backgroundColor = "";
                   }
                 }}
-                onClick={() => handleSelectCommit(commit)}
+                onClick={() => handleRowClick(commit)}
                 onWheel={handleRowWheel}
               />
             );

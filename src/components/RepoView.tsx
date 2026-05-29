@@ -78,7 +78,11 @@ export default function RepoView() {
               </div>
             </div>
           ) : (
-            <CommitGraph zoomLevel={zoomLevel} onZoomChange={setZoomLevel} />
+            <CommitGraph
+              zoomLevel={zoomLevel}
+              onZoomChange={setZoomLevel}
+              onToggleDetail={() => setShowCommit((v) => !v)}
+            />
           )}
         </div>
         {(showCommit || showAI) && (
