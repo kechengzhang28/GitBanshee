@@ -95,3 +95,9 @@ export interface CommitResult {
   hash: string;
   short_hash: string;
 }
+
+export interface StashEntry {
+  index: number;
+  message: string;
+  oid: string;
+}

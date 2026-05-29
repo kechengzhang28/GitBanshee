@@ -34,7 +34,7 @@ Create a test repository with branches, merges, and tags for graph inspection:
 cargo run --bin create_mock_repo     # creates mock-repo/ at workspace root
 ```
 
-The resulting `mock-repo/` can be opened in GitKraken or GitBanshee. It contains:
+The resulting `mock-repo/` can be opened. It contains:
 
 - 10 commits (A–J)
 - 3 branches (main, feature, hotfix)

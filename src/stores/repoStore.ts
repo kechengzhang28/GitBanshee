@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { BranchInfo, PositionedCommit, RenderData, StatusEntry } from "../types";
+import type { BranchInfo, PositionedCommit, RenderData, StashEntry, StatusEntry } from "../types";
 import * as ipc from "../utils/ipc";
 import { toast } from "./toastStore";
 
@@ -15,6 +15,7 @@ interface RepoState {
   error: string | null;
   scrollTarget: string | null;
   focusedBranch: string | null;
+  stashes: StashEntry[];
 
   openRepo: (path: string) => Promise<void>;
   loadCommits: (offset: number, limit: number) => Promise<void>;
@@ -35,6 +36,21 @@ interface RepoState {
   fetchRemote: () => Promise<void>;
   pull: () => Promise<void>;
   push: () => Promise<void>;
+
+  // Stash
+  loadStashes: () => Promise<void>;
+  stashSave: (message?: string) => Promise<void>;
+  stashPop: (index: number) => Promise<void>;
+  stashApply: (index: number) => Promise<void>;
+  stashDrop: (index: number) => Promise<void>;
+
+  // Cherry-pick
+  cherryPick: (hash: string) => Promise<void>;
+
+  // Rebase
+  rebaseStart: (ontoBranch: string) => Promise<void>;
+  rebaseContinue: () => Promise<void>;
+  rebaseAbort: () => Promise<void>;
 }
 
 export const useRepoStore = create<RepoState>((set, get) => ({
@@ -49,6 +65,7 @@ export const useRepoStore = create<RepoState>((set, get) => ({
   error: null,
   scrollTarget: null,
   focusedBranch: null,
+  stashes: [],
 
   openRepo: async (path: string) => {
     try {
@@ -114,6 +131,7 @@ export const useRepoStore = create<RepoState>((set, get) => ({
       commitCount: 0,
       scrollTarget: null,
       focusedBranch: null,
+      stashes: [],
       status: [],
       error: null,
     });
@@ -267,6 +285,136 @@ export const useRepoStore = create<RepoState>((set, get) => ({
     try {
       const msg = await ipc.push(path, "origin");
       toast("success", msg);
+    } catch (e) {
+      toast("error", String(e));
+    }
+  },
+
+  // ---- Stash ----
+
+  loadStashes: async () => {
+    const { path } = get();
+    if (!path) return;
+    try {
+      const entries = await ipc.stashList(path);
+      set({ stashes: entries });
+    } catch (e) {
+      // No stashes is not an error
+      set({ stashes: [] });
+    }
+  },
+
+  stashSave: async (message?: string) => {
+    const { path } = get();
+    if (!path) return;
+    try {
+      const msg = await ipc.stashSave(path, message);
+      toast("success", msg || "Stash saved");
+      await get().loadStashes();
+      await get().loadStatus();
+    } catch (e) {
+      toast("error", String(e));
+    }
+  },
+
+  stashPop: async (index: number) => {
+    const { path } = get();
+    if (!path) return;
+    try {
+      const msg = await ipc.stashPop(path, index);
+      toast("success", msg);
+      set({ commits: [] });
+      await get().loadStashes();
+      await get().loadStatus();
+      await get().loadCommits(0, 500);
+    } catch (e) {
+      toast("error", String(e));
+    }
+  },
+
+  stashApply: async (index: number) => {
+    const { path } = get();
+    if (!path) return;
+    try {
+      const msg = await ipc.stashApply(path, index);
+      toast("success", msg);
+      await get().loadStatus();
+    } catch (e) {
+      toast("error", String(e));
+    }
+  },
+
+  stashDrop: async (index: number) => {
+    const { path } = get();
+    if (!path) return;
+    try {
+      const msg = await ipc.stashDrop(path, index);
+      toast("success", msg);
+      await get().loadStashes();
+    } catch (e) {
+      toast("error", String(e));
+    }
+  },
+
+  // ---- Cherry-pick ----
+
+  cherryPick: async (hash: string) => {
+    const { path } = get();
+    if (!path) return;
+    try {
+      const msg = await ipc.cherryPick(path, hash);
+      toast("success", msg);
+      set({ commits: [] });
+      await get().loadCommits(0, 500);
+      await get().loadBranches();
+      await get().loadStatus();
+    } catch (e) {
+      toast("error", String(e));
+    }
+  },
+
+  // ---- Rebase ----
+
+  rebaseStart: async (ontoBranch: string) => {
+    const { path } = get();
+    if (!path) return;
+    try {
+      const msg = await ipc.rebaseStart(path, ontoBranch);
+      toast("success", msg);
+      set({ commits: [] });
+      await get().loadCommits(0, 500);
+      await get().loadBranches();
+      await get().loadStatus();
+    } catch (e) {
+      toast("error", String(e));
+    }
+  },
+
+  rebaseContinue: async () => {
+    const { path } = get();
+    if (!path) return;
+    try {
+      const msg = await ipc.rebaseContinue(path);
+      toast("success", msg);
+      set({ commits: [] });
+      await get().loadCommits(0, 500);
+      await get().loadBranches();
+      await get().loadStatus();
+    } catch (e) {
+      toast("error", String(e));
+    }
+  },
+
+  rebaseAbort: async () => {
+    const { path } = get();
+    if (!path) return;
+    try {
+      const msg = await ipc.rebaseAbort(path);
+      toast("info", msg);
+      set({ commits: [] });
+      await get().loadCommits(0, 500);
+      await get().loadBranches();
+      await get().loadStatus();
     } catch (e) {
       toast("error", String(e));
     }

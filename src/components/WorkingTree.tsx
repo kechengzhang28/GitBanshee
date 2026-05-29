@@ -9,6 +9,7 @@ export default function WorkingTree() {
   const unstageFile = useRepoStore((s) => s.unstageFile);
   const stageAll = useRepoStore((s) => s.stageAll);
   const createCommit = useRepoStore((s) => s.createCommit);
+  const stashSave = useRepoStore((s) => s.stashSave);
 
   const [summary, setSummary] = useState("");
   const [description, setDescription] = useState("");
@@ -61,6 +62,14 @@ export default function WorkingTree() {
             />
             Amend
           </label>
+          <button
+            onClick={() => stashSave()}
+            disabled={unstaged.length === 0 && staged.length === 0}
+            className="rounded border border-gb-border px-2 py-1 text-xs text-gb-text-muted hover:bg-gb-hover hover:text-gb-text disabled:opacity-50"
+            title="Stash working changes"
+          >
+            Stash
+          </button>
           <button
             onClick={handleCommit}
             disabled={committing || !summary.trim() || (!amend && staged.length === 0)}

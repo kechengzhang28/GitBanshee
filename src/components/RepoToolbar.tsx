@@ -1,4 +1,4 @@
-import { Undo2, Redo2, Download, Upload, GitBranch, Archive, ArrowUpFromLine, PanelLeft, Info, Sparkles, FolderOpen } from "lucide-react";
+import { Undo2, Redo2, Download, Upload, GitBranch, Archive, ArrowUpFromLine, PanelLeft, Info, Sparkles, FolderOpen, GitMerge, GitPullRequest } from "lucide-react";
 import Button from "./ui/Button";
 
 interface Props {
@@ -13,6 +13,10 @@ interface Props {
   onBranchClick: () => void;
   onPull: () => void;
   onPush: () => void;
+  onStashClick: () => void;
+  onStashPop: () => void;
+  onRebaseClick: () => void;
+  onCherryPick: () => void;
 }
 
 export default function RepoToolbar({
@@ -27,6 +31,10 @@ export default function RepoToolbar({
   onBranchClick,
   onPull,
   onPush,
+  onStashClick,
+  onStashPop,
+  onRebaseClick,
+  onCherryPick,
 }: Props) {
   return (
     <div className="flex h-10 items-center gap-0.5 border-b border-gb-border bg-gb-toolbar px-2">
@@ -38,8 +46,11 @@ export default function RepoToolbar({
       <Separator />
       <Button variant="ghost" size="sm" icon={GitBranch} onClick={onBranchClick}>Branch</Button>
       <Separator />
-      <Button variant="ghost" size="sm" icon={Archive}>Stash</Button>
-      <Button variant="ghost" size="sm" icon={ArrowUpFromLine}>Pop</Button>
+      <Button variant="ghost" size="sm" icon={Archive} onClick={onStashClick}>Stash</Button>
+      <Button variant="ghost" size="sm" icon={ArrowUpFromLine} onClick={onStashPop}>Pop</Button>
+      <Separator />
+      <Button variant="ghost" size="sm" icon={GitMerge} onClick={onRebaseClick} title="Rebase">Rebase</Button>
+      <Button variant="ghost" size="sm" icon={GitPullRequest} onClick={onCherryPick} title="Cherry-pick selected commit">Pick</Button>
       <div className="flex-1" />
       <Separator />
       <Button

@@ -5,7 +5,7 @@ import type { DiffContent, DiffFile } from "../types";
 import PanelHeader from "./PanelHeader";
 import FileExplorer from "./FileExplorer";
 import Button from "./ui/Button";
-import { GitCommitHorizontal } from "lucide-react";
+import { GitCommitHorizontal, GitPullRequest } from "lucide-react";
 
 interface Props {
   onViewFile?: (file: DiffFile) => void;
@@ -15,6 +15,7 @@ export default function CommitDetails({ onViewFile }: Props) {
   const commit = useRepoStore((s) => s.selectedCommit);
   const path = useRepoStore((s) => s.path);
   const checkoutCommit = useRepoStore((s) => s.checkoutCommit);
+  const cherryPick = useRepoStore((s) => s.cherryPick);
   const branches = useRepoStore((s) => s.branches);
   const currentBranch = branches.find((b) => b.is_head);
   const [diff, setDiff] = useState<DiffContent | null>(null);
@@ -67,17 +68,28 @@ export default function CommitDetails({ onViewFile }: Props) {
             <span className="text-gb-text-muted">Hash</span>{" "}
             <span className="font-mono text-gb-text">{commit.short_sha}</span>
           </span>
-          {!currentBranch && (
+          <div className="flex gap-1">
             <Button
               variant="ghost"
               size="sm"
-              icon={GitCommitHorizontal}
-              onClick={() => checkoutCommit(commit.sha)}
-              title="Checkout this commit"
+              icon={GitPullRequest}
+              onClick={() => cherryPick(commit.sha)}
+              title="Cherry-pick this commit"
             >
-              Checkout
+              Pick
             </Button>
-          )}
+            {!currentBranch && (
+              <Button
+                variant="ghost"
+                size="sm"
+                icon={GitCommitHorizontal}
+                onClick={() => checkoutCommit(commit.sha)}
+                title="Checkout this commit"
+              >
+                Checkout
+              </Button>
+            )}
+          </div>
         </div>
         <div>
           <span className="text-gb-text-muted">Author</span>{" "}

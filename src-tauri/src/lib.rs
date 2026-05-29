@@ -28,6 +28,15 @@ pub fn run() {
             commands::write::fetch_remote,
             commands::write::pull,
             commands::write::push,
+            commands::write::stash_list,
+            commands::write::stash_save,
+            commands::write::stash_pop,
+            commands::write::stash_apply,
+            commands::write::stash_drop,
+            commands::write::cherry_pick,
+            commands::write::rebase_start,
+            commands::write::rebase_continue,
+            commands::write::rebase_abort,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

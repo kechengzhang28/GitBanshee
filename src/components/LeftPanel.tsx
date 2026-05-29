@@ -16,6 +16,8 @@ export default function LeftPanel() {
   const checkoutBranch = useRepoStore((s) => s.checkoutBranch);
   const focusCommit = useRepoStore((s) => s.focusCommit);
   const focusedBranch = useRepoStore((s) => s.focusedBranch);
+  const stashes = useRepoStore((s) => s.stashes);
+  const loadStashes = useRepoStore((s) => s.loadStashes);
   const [open, setOpen] = useState<SectionState>({
     local: true,
     remote: false,
@@ -24,8 +26,11 @@ export default function LeftPanel() {
   });
 
   useEffect(() => {
-    if (path) loadBranches();
-  }, [path, loadBranches]);
+    if (path) {
+      loadBranches();
+      loadStashes();
+    }
+  }, [path, loadBranches, loadStashes]);
 
   const localBranches = branches.filter((b) => !b.is_remote);
   const remoteBranches = branches.filter((b) => b.is_remote && !b.name.endsWith("/HEAD"));
@@ -64,7 +69,17 @@ export default function LeftPanel() {
           />
         ))}
       <SectionHeader label="TAGS" count={0} open={open.tags} onToggle={() => toggle("tags")} />
-      <SectionHeader label="STASHES" count={0} open={open.stashes} onToggle={() => toggle("stashes")} />
+      <SectionHeader label="STASHES" count={stashes.length} open={open.stashes} onToggle={() => toggle("stashes")} />
+      {open.stashes &&
+        stashes.map((s) => (
+          <div
+            key={s.index}
+            className="flex h-7 cursor-pointer items-center gap-2 px-3 text-xs text-gb-text-muted hover:bg-gb-hover"
+          >
+            <span className="block h-1.5 w-1.5 shrink-0 rounded-full bg-gb-text-muted" />
+            <span className="truncate">stash@&#123;{s.index}&#125;: {s.message}</span>
+          </div>
+        ))}
     </div>
   );
 }

@@ -11,6 +11,8 @@ import StatusBar from "./StatusBar";
 import DiffViewer from "./DiffViewer";
 import WorkingTree from "./WorkingTree";
 import BranchDialog from "./BranchDialog";
+import StashDialog from "./StashDialog";
+import RebaseDialog from "./RebaseDialog";
 import { ArrowLeft } from "lucide-react";
 
 export default function RepoView() {
@@ -19,11 +21,16 @@ export default function RepoView() {
   const loadStatus = useRepoStore((s) => s.loadStatus);
   const pullRepo = useRepoStore((s) => s.pull);
   const pushRepo = useRepoStore((s) => s.push);
+  const stashPop = useRepoStore((s) => s.stashPop);
+  const cherryPick = useRepoStore((s) => s.cherryPick);
+  const selectedCommit = useRepoStore((s) => s.selectedCommit);
   const [showLeft, setShowLeft] = useState(true);
   const [showCommit, setShowCommit] = useState(true);
   const [showAI, setShowAI] = useState(false);
   const [showTree, setShowTree] = useState(false);
   const [showBranchDialog, setShowBranchDialog] = useState(false);
+  const [showStashDialog, setShowStashDialog] = useState(false);
+  const [showRebaseDialog, setShowRebaseDialog] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(1);
   const [viewingFile, setViewingFile] = useState<DiffFile | null>(null);
 
@@ -57,6 +64,12 @@ export default function RepoView() {
         onBranchClick={() => setShowBranchDialog(true)}
         onPull={() => pullRepo()}
         onPush={() => pushRepo()}
+        onStashClick={() => setShowStashDialog(true)}
+        onStashPop={() => stashPop(0)}
+        onRebaseClick={() => setShowRebaseDialog(true)}
+        onCherryPick={() => {
+          if (selectedCommit) cherryPick(selectedCommit.sha);
+        }}
       />
       <div className="flex flex-1 overflow-hidden">
         {showLeft && (
@@ -109,6 +122,14 @@ export default function RepoView() {
       <BranchDialog
         open={showBranchDialog}
         onClose={() => setShowBranchDialog(false)}
+      />
+      <StashDialog
+        open={showStashDialog}
+        onClose={() => setShowStashDialog(false)}
+      />
+      <RebaseDialog
+        open={showRebaseDialog}
+        onClose={() => setShowRebaseDialog(false)}
       />
     </div>
   );

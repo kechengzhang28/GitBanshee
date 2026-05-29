@@ -8,6 +8,7 @@ import type {
   MergeCurve,
   OpenRepoResult,
   PositionedCommit,
+  StashEntry,
   StatusEntry,
 } from "../types";
 
@@ -112,4 +113,46 @@ export async function pull(path: string, remoteName: string, branch: string): Pr
 
 export async function push(path: string, remoteName: string): Promise<string> {
   return invoke<string>("push", { path, remoteName });
+}
+
+// ---- Stash ----
+
+export async function stashList(path: string): Promise<StashEntry[]> {
+  return invoke<StashEntry[]>("stash_list", { path });
+}
+
+export async function stashSave(path: string, message?: string): Promise<string> {
+  return invoke<string>("stash_save", { path, message });
+}
+
+export async function stashPop(path: string, index: number): Promise<string> {
+  return invoke<string>("stash_pop", { path, index });
+}
+
+export async function stashApply(path: string, index: number): Promise<string> {
+  return invoke<string>("stash_apply", { path, index });
+}
+
+export async function stashDrop(path: string, index: number): Promise<string> {
+  return invoke<string>("stash_drop", { path, index });
+}
+
+// ---- Cherry-pick ----
+
+export async function cherryPick(path: string, commitHash: string): Promise<string> {
+  return invoke<string>("cherry_pick", { path, commitHash });
+}
+
+// ---- Rebase ----
+
+export async function rebaseStart(path: string, ontoBranch: string): Promise<string> {
+  return invoke<string>("rebase_start", { path, ontoBranch });
+}
+
+export async function rebaseContinue(path: string): Promise<string> {
+  return invoke<string>("rebase_continue", { path });
+}
+
+export async function rebaseAbort(path: string): Promise<string> {
+  return invoke<string>("rebase_abort", { path });
 }
