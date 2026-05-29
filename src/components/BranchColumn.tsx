@@ -72,20 +72,19 @@ function BranchColumn({ scrollTop, visibleRows, commits }: BranchColumnProps) {
           return (
             <div className="flex flex-col justify-center h-full py-0.5">
               {entries.map((e, i) => {
-                const accent = isHead && !e.isTag
-                  ? { color: "var(--gb-accent)", fontWeight: "bold" as const }
-                  : { color: c.color };
+                const bold = isHead && !e.isTag;
+                const s = { color: c.color, fontWeight: bold ? ("bold" as const) : undefined };
 
                 return (
                   <div
                     key={i}
                     className="flex items-center gap-1 px-2 text-xs leading-5"
-                    style={accent}
+                    style={s}
                   >
                     {e.isTag ? (
                       <Tag size={11} className="shrink-0" style={{ color: c.color }} />
                     ) : e.isDetached ? (
-                      <GitBranch size={11} className="shrink-0" style={accent} />
+                      <GitBranch size={11} className="shrink-0" style={s} />
                     ) : null}
                     <span className="truncate">{e.label}</span>
                     {!e.isTag && !e.isDetached && e.hasRemote && (
