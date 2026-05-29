@@ -147,16 +147,17 @@ fn merge(
 ) -> git2::Oid {
     let p1 = repo.find_commit(*parent1).unwrap();
     let p2 = repo.find_commit(*parent2).unwrap();
-
-    // Detach at parent1 so the commit API accepts it as first parent
-    let parent1_obj = p1.as_object().clone();
-    repo.set_head_detached(*parent1).unwrap();
-    repo.checkout_tree(&parent1_obj, None).unwrap();
-
     let tree = p1.tree().unwrap();
-    let oid = repo.commit(None, sig, sig, msg, &tree, &[&p1, &p2]).unwrap();
 
-    // Attach main branch to merge commit and switch back
+    // Write commit directly to ODB, bypassing HEAD check
+    let oid = repo.commit_create_buffer(sig, sig, msg, &tree, &[&p1, &p2]).unwrap();
+    let oid = repo
+        .odb()
+        .unwrap()
+        .write(git2::ObjectType::Commit, &oid)
+        .unwrap();
+
+    // Update main branch ref
     repo.reference("refs/heads/main", oid, true, "merge").unwrap();
     repo.set_head("refs/heads/main").unwrap();
     checkout(repo, "refs/heads/main");
