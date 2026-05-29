@@ -14,6 +14,7 @@ import BranchDialog from "./BranchDialog";
 import StashDialog from "./StashDialog";
 import RebaseDialog from "./RebaseDialog";
 import { ArrowLeft } from "lucide-react";
+import { ROW_HEIGHT } from "./constants";
 
 export default function RepoView() {
   const error = useRepoStore((s) => s.error);
@@ -37,6 +38,30 @@ export default function RepoView() {
   useEffect(() => {
     if (path) loadStatus();
   }, [path, loadStatus]);
+
+  // Global keyboard shortcuts
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const mod = e.ctrlKey || e.metaKey;
+      const store = useRepoStore.getState();
+
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+
+      if (mod && e.shiftKey) {
+        if (e.key === "P" || e.key === "p") { e.preventDefault(); store.push(); }
+        else if (e.key === "L" || e.key === "l") { e.preventDefault(); store.pull(); }
+        else if (e.key === "S" || e.key === "s") { e.preventDefault(); store.stashSave(); }
+      } else if (mod && !e.shiftKey) {
+        if (e.key === "l" || e.key === "L") { e.preventDefault(); store.fetchRemote(); }
+      } else if (!mod) {
+        if (e.key === "j") scrollByRow(1);
+        else if (e.key === "k") scrollByRow(-1);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
 
   if (!path && error) {
     return (
@@ -133,4 +158,9 @@ export default function RepoView() {
       />
     </div>
   );
+}
+
+function scrollByRow(delta: number) {
+  const el = document.querySelector<HTMLDivElement>(".overflow-auto");
+  if (el) el.scrollTop += delta * ROW_HEIGHT;
 }

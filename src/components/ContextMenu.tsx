@@ -1,13 +1,9 @@
 import { useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 
-export interface ContextMenuItem {
-  label: string;
-  shortcut?: string;
-  danger?: boolean;
-  onClick: () => void;
-  separator?: boolean;
-}
+export type ContextMenuItem =
+  | { label: string; onClick: () => void; shortcut?: string; danger?: boolean; separator?: false }
+  | { separator: true };
 
 interface Props {
   x: number;
@@ -47,7 +43,7 @@ export default function ContextMenu({ x, y, items, onClose }: Props) {
       onClick={(e) => e.stopPropagation()}
     >
       {items.map((item, i) =>
-        item.separator ? (
+        "separator" in item && item.separator ? (
           <div key={i} className="my-1 border-t border-gb-border" />
         ) : (
           <button
