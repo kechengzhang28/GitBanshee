@@ -31,3 +31,5 @@ Thumbs.db
 # Development
 .trae/
 mock-repo/
+
+.cache/
