@@ -15,6 +15,7 @@ pub fn run() {
             commands::repo::open_repo,
             commands::repo::get_commits,
             commands::repo::get_branches,
+            commands::repo::get_tags,
             commands::repo::get_commit_diff,
             commands::write::get_status,
             commands::write::stage_file,

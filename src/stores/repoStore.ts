@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { BranchInfo, PositionedCommit, RenderData, StashEntry, StatusEntry } from "../types";
+import type { BranchInfo, PositionedCommit, RenderData, StashEntry, StatusEntry, TagInfo } from "../types";
 import * as ipc from "../utils/ipc";
 import { toast } from "./toastStore";
 
@@ -18,11 +18,13 @@ interface RepoState {
   scrollTarget: string | null;
   focusedBranch: string | null;
   stashes: StashEntry[];
+  tags: TagInfo[];
   openRepoPaths: string[];
 
   openRepo: (path: string) => Promise<void>;
   loadCommits: (offset: number, limit: number) => Promise<void>;
   loadBranches: () => Promise<void>;
+  loadTags: () => Promise<void>;
   selectCommit: (commit: PositionedCommit | null) => void;
   focusCommit: (sha: string, branchName?: string) => void;
   closeRepo: () => void;
@@ -69,6 +71,7 @@ export const useRepoStore = create<RepoState>((set, get) => ({
   scrollTarget: null,
   focusedBranch: null,
   stashes: [],
+  tags: [],
   openRepoPaths: [],
 
   openRepo: async (path: string) => {
@@ -129,6 +132,17 @@ export const useRepoStore = create<RepoState>((set, get) => ({
     }
   },
 
+  loadTags: async () => {
+    const { path } = get();
+    if (!path) return;
+    try {
+      const tags = await ipc.getTags(path);
+      set({ tags });
+    } catch (e) {
+      toast("error", String(e));
+    }
+  },
+
   selectCommit: (commit: PositionedCommit | null) => {
     set({ selectedCommit: commit, focusedBranch: null });
   },
@@ -154,6 +168,7 @@ export const useRepoStore = create<RepoState>((set, get) => ({
       scrollTarget: null,
       focusedBranch: null,
       stashes: [],
+      tags: [],
       status: [],
       error: null,
       openRepoPaths: [],

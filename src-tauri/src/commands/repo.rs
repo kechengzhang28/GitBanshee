@@ -100,6 +100,12 @@ pub fn get_branches(path: String) -> Result<Vec<crate::models::BranchInfo>, Stri
 }
 
 #[tauri::command]
+pub fn get_tags(path: String) -> Result<Vec<crate::models::TagInfo>, String> {
+    let repo = engine::open_repo(&path).map_err(|e| e.to_string())?;
+    engine::get_tags(&repo).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 pub fn get_commit_diff(path: String, hash: String) -> Result<crate::models::DiffContent, String> {
     let repo = engine::open_repo(&path).map_err(|e| e.to_string())?;
     engine::get_commit_diff(&repo, &hash).map_err(|e| e.to_string())

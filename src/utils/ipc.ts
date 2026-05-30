@@ -10,6 +10,7 @@ import type {
   PositionedCommit,
   StashEntry,
   StatusEntry,
+  TagInfo,
 } from "../types";
 
 export async function openRepo(path: string): Promise<OpenRepoResult> {
@@ -36,6 +37,10 @@ export async function getCommits(
 
 export async function getBranches(path: string): Promise<BranchInfo[]> {
   return invoke<BranchInfo[]>("get_branches", { path });
+}
+
+export async function getTags(path: string): Promise<TagInfo[]> {
+  return invoke<TagInfo[]>("get_tags", { path });
 }
 
 export async function getCommitDiff(

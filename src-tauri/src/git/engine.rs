@@ -1,4 +1,4 @@
-use crate::models::{BranchInfo, DiffContent, DiffFile, DiffHunk, DiffLine};
+use crate::models::{BranchInfo, DiffContent, DiffFile, DiffHunk, DiffLine, TagInfo};
 use git2::{BranchType, DiffOptions, Repository, Sort};
 
 pub fn open_repo(path: &str) -> Result<Repository, git2::Error> {
@@ -66,6 +66,25 @@ pub fn get_branches(repo: &Repository) -> Result<Vec<BranchInfo>, git2::Error> {
     }
 
     Ok(result)
+}
+
+pub fn get_tags(repo: &Repository) -> Result<Vec<TagInfo>, git2::Error> {
+    let mut tags = Vec::new();
+    for name in repo.tag_names(None)?.iter().flatten() {
+        let obj = repo.revparse_single(name)?;
+        let target_commit = match obj.peel_to_commit() {
+            Ok(c) => c.id().to_string(),
+            Err(_) => continue,
+        };
+        let is_annotated = obj.kind() == Some(git2::ObjectType::Tag);
+        tags.push(TagInfo {
+            name: name.to_string(),
+            display_name: name.to_string(),
+            target_commit,
+            is_annotated,
+        });
+    }
+    Ok(tags)
 }
 
 pub fn get_commit_diff(repo: &Repository, hash: &str) -> Result<DiffContent, git2::Error> {

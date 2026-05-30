@@ -56,6 +56,13 @@ export interface BranchInfo {
   is_remote: boolean;
 }
 
+export interface TagInfo {
+  name: string;
+  display_name: string;
+  target_commit: string;
+  is_annotated: boolean;
+}
+
 export interface OpenRepoResult {
   path: string;
   branch_count: number;
