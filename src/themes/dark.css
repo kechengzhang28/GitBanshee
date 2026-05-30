@@ -1,27 +1,42 @@
 :root {
-  --gb-bg: #0b0d0f;
-  --gb-accent: #388bfd;
-  --gb-text: #c2c6ca;
+  /* === Base colors === */
+  --gb-accent: #4D88FF;
+  --gb-success: #5CB85C;
+  --gb-danger: #D9413D;
+  --gb-warning: #DE9B43;
+  --gb-info: #5bc0de;
 
-  --gb-panel: #15161a;
-  --gb-toolbar: #0d0e10;
-  --gb-input: #1c1f24;
-  --gb-hover: #25272d;
-  --gb-border: #2a2c33;
+  /* === Background tiers (darkest to lightest) === */
+  --gb-bg: #1C1E23;
+  --gb-toolbar: #22252B;
+  --gb-panel: #25282E;
+  --gb-input: rgba(0,0,0,0.2);
+  --gb-hover: rgba(77,136,255,0.12);
+  --gb-border: rgba(255,255,255,0.06);
 
-  --gb-text-sec: #797e85;
-  --gb-text-muted: #4d5156;
+  /* === Text opacity tiers === */
+  --gb-text: rgba(255,255,255,0.90);
+  --gb-text-sec: rgba(255,255,255,0.60);
+  --gb-text-muted: rgba(255,255,255,0.35);
 
-  --gb-accent-h: #539bf5;
+  /* === Graph branch palette (hue-sampled color wheel) === */
+  --gb-branch-0: #15a0bf;
+  --gb-branch-1: #0669f7;
+  --gb-branch-2: #8e00c2;
+  --gb-branch-3: #c517b6;
+  --gb-branch-4: #d90171;
+  --gb-branch-5: #cd0101;
+  --gb-branch-6: #f25d2e;
+  --gb-branch-7: #f2ca33;
+  --gb-branch-8: #7bd938;
+  --gb-branch-9: #2ece9d;
 
-  --gb-success: #3fb950;
-  --gb-danger: #f85149;
-  --gb-warning: #d29922;
+  /* === State colors === */
+  --gb-selected-row: rgba(77,136,255,0.18);
+  --gb-checked-out: rgba(92,184,92,0.22);
+  --gb-danger-row: rgba(217,65,61,0.15);
 
-  --gb-branch-0: #58a6ff;
-  --gb-branch-1: #3fb950;
-  --gb-branch-2: #d29922;
-  --gb-branch-3: #a371f7;
-  --gb-branch-4: #f85149;
-  --gb-branch-5: #39d353;
+  /* === Scrollbar === */
+  --gb-scrollbar-thumb: rgba(255,255,255,0.12);
+  --gb-scrollbar-track: transparent;
 }

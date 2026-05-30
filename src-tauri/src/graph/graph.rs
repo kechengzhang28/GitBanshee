@@ -18,10 +18,10 @@ impl Default for GraphConfig {
     fn default() -> Self {
         Self {
             colors: vec![
-                "#58a6ff".into(), "#3fb950".into(), "#d29922".into(),
-                "#a371f7".into(), "#f85149".into(), "#39d353".into(),
-                "#ffa657".into(), "#db61a2".into(), "#56d4dd".into(),
-                "#f0883e".into(),
+                "#15a0bf".into(), "#0669f7".into(), "#8e00c2".into(),
+                "#c517b6".into(), "#d90171".into(), "#cd0101".into(),
+                "#f25d2e".into(), "#f2ca33".into(), "#7bd938".into(),
+                "#2ece9d".into(),
             ],
             initial_count: 2000,
             load_more_count: 1000,
