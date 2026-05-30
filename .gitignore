@@ -29,4 +29,5 @@ Thumbs.db
 *.dSYM
 
 # Development
+.trae/
 mock-repo/
