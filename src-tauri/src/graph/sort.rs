@@ -3,7 +3,10 @@ use crate::graph::types::CommitNode;
 
 pub fn temporal_topological_sort(nodes: &HashMap<String, CommitNode>) -> Vec<String> {
     let mut commits: Vec<&CommitNode> = nodes.values().collect();
-    commits.sort_by_key(|c| -c.committer_date);
+    commits.sort_by(|a, b| {
+        b.committer_date.cmp(&a.committer_date)
+            .then_with(|| a.sha.cmp(&b.sha))
+    });
 
     let mut sorted: Vec<String> = Vec::with_capacity(nodes.len());
     let mut visited = HashMap::new();

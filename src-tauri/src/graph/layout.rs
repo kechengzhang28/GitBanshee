@@ -27,9 +27,10 @@ pub fn assign_columns(
             None => continue,
         };
 
-        let branch_children: Vec<&String> = commit.children.iter()
+        let mut branch_children: Vec<&String> = commit.children.iter()
             .filter(|c| nodes.get(*c).map(|n| n.parents.first() == Some(sha)).unwrap_or(false))
             .collect();
+        branch_children.sort();
 
         let has_branch_children = !branch_children.is_empty();
         let has_children = !commit.children.is_empty();
@@ -64,9 +65,10 @@ pub fn assign_columns(
 
             chosen_col
         } else {
-            let children_with_cols: Vec<(String, usize)> = commit.children.iter()
+            let mut children_with_cols: Vec<(String, usize)> = commit.children.iter()
                 .filter_map(|c| commit_col.get(c).map(|&col| (c.clone(), col)))
                 .collect();
+            children_with_cols.sort();
 
             let min_child_row = children_with_cols.iter()
                 .filter_map(|(c, _)| commit_row.get(c).copied())

@@ -73,9 +73,10 @@ pub fn compute_curves(
             });
         }
 
-        let branch_children: Vec<&String> = commit.children.iter()
+        let mut branch_children: Vec<&String> = commit.children.iter()
             .filter(|c| nodes.get(*c).map(|n| n.parents.first() == Some(sha)).unwrap_or(false))
             .collect();
+        branch_children.sort();
 
         for child_sha in branch_children {
             let child_col = match commit_col.get(child_sha.as_str()) {
@@ -99,6 +100,18 @@ pub fn compute_curves(
             });
         }
     }
+
+    // Sort for deterministic rendering z-order
+    merge_curves.sort_by(|a, b| {
+        a.from_row.cmp(&b.from_row)
+            .then_with(|| a.from_col.cmp(&b.from_col))
+            .then_with(|| a.to_col.cmp(&b.to_col))
+    });
+    fork_curves.sort_by(|a, b| {
+        a.from_row.cmp(&b.from_row)
+            .then_with(|| a.from_col.cmp(&b.from_col))
+            .then_with(|| a.to_col.cmp(&b.to_col))
+    });
 
     (merge_curves, fork_curves)
 }

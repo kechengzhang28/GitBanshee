@@ -264,7 +264,10 @@ impl CommitGraph {
     }
 
     fn sort_and_layout(&mut self) {
-        let all_shas: Vec<String> = self.nodes.keys().cloned().collect();
+        // Sort keys for deterministic child ordering across runs
+        let mut all_shas: Vec<String> = self.nodes.keys().cloned().collect();
+        all_shas.sort();
+
         for sha in &all_shas {
             let parents: Vec<String> = self.nodes.get(sha)
                 .map(|n| n.parents.clone())
@@ -276,6 +279,11 @@ impl CommitGraph {
                     }
                 }
             }
+        }
+
+        // Sort children within each node for deterministic traversal
+        for (_, node) in self.nodes.iter_mut() {
+            node.children.sort();
         }
 
         self.ordered_hashes = temporal_topological_sort(&self.nodes);
