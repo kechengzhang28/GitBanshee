@@ -61,7 +61,7 @@ export default function CommitDetails({ onViewFile }: Props) {
   const totalDel = diff?.files.reduce((s, f) => s + f.deletions, 0) ?? 0;
 
   return (
-    <div className="flex h-full flex-col bg-gb-panel">
+    <div className="flex h-full flex-col border-l border-gb-border bg-gb-panel">
       <PanelHeader title="Commit Details" />
       <div className="shrink-0 space-y-1 border-b border-gb-border bg-gb-panel px-3 py-2 text-xs">
         <div className="flex items-center justify-between">

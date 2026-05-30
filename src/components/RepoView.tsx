@@ -130,7 +130,7 @@ export default function RepoView() {
           )}
         </div>
         {(showCommit || showAI) && (
-          <div className="flex shrink-0 border-l border-gb-border">
+          <div className="flex shrink-0">
             {showCommit && (
               <div className="w-[340px]">
                 <CommitDetails onViewFile={setViewingFile} />
