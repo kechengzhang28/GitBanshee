@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useRepoStore } from "../stores/repoStore";
-import { GitBranch, X } from "lucide-react";
+import { GitBranch, Trash2, X } from "lucide-react";
 
 interface Props {
   open: boolean;
@@ -31,6 +31,12 @@ export default function BranchDialog({ open, onClose }: Props) {
   };
 
   const handleDelete = async (branchName: string) => {
+    // If deleting the current branch, switch to another branch first
+    const isHead = branches.find((b) => b.name === branchName)?.is_head;
+    if (isHead) {
+      const fallback = branches.find((b) => !b.is_head);
+      if (fallback) await checkoutBranch(fallback.name);
+    }
     await deleteBranch(branchName);
   };
 
@@ -41,7 +47,7 @@ export default function BranchDialog({ open, onClose }: Props) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
-      <div className="w-80 rounded-lg border border-gb-border bg-gb-panel shadow-xl" onClick={(e) => e.stopPropagation()}>
+      <div className="w-96 rounded-lg border border-gb-border bg-gb-panel shadow-xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between border-b border-gb-border px-4 py-2">
           <span className="text-sm font-semibold text-gb-text">Branches</span>
           <button
@@ -52,13 +58,11 @@ export default function BranchDialog({ open, onClose }: Props) {
           </button>
         </div>
 
-        <div className="max-h-64 overflow-y-auto p-2">
+        <div className="max-h-96 overflow-y-auto p-2">
           {branches.map((b) => (
             <div
               key={b.name}
-              className={`flex h-7 items-center gap-2 rounded px-2 text-xs ${
-                b.is_head ? "bg-gb-hover" : "hover:bg-gb-hover"
-              }`}
+              className="flex h-7 items-center gap-2 rounded px-2 text-xs hover:bg-gb-hover"
             >
               <GitBranch
                 size={12}
@@ -66,21 +70,19 @@ export default function BranchDialog({ open, onClose }: Props) {
               />
               <span
                 className={`flex-1 cursor-pointer truncate ${
-                  b.is_head ? "font-semibold text-gb-text" : "text-gb-text"
+                  b.is_head ? "font-semibold text-gb-accent" : "text-gb-text"
                 }`}
                 onClick={() => handleSwitch(b.name)}
               >
                 {b.name}
               </span>
-              {!b.is_head && (
-                <button
-                  onClick={() => handleDelete(b.name)}
-                  className="shrink-0 text-gb-text-muted hover:text-gb-danger"
-                  title="Delete branch"
-                >
-                  Delete
-                </button>
-              )}
+              <button
+                onClick={() => handleDelete(b.name)}
+                className="shrink-0 rounded p-1 text-gb-text-muted hover:text-gb-danger"
+                title="Delete branch"
+              >
+                <Trash2 size={12} />
+              </button>
             </div>
           ))}
         </div>
