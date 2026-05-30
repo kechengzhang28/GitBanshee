@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useRepoStore } from "../stores/repoStore";
+import { useRepoStore, useBranches, useFocusedBranch, useStashes, useTags } from "../stores/repoStore";
 import PanelHeader from "./PanelHeader";
 import SectionHeader from "./SectionHeader";
 
@@ -12,14 +12,14 @@ interface SectionState {
 
 export default function LeftPanel() {
   const path = useRepoStore((s) => s.path);
-  const branches = useRepoStore((s) => s.branches);
+  const branches = useBranches();
   const loadBranches = useRepoStore((s) => s.loadBranches);
   const checkoutBranch = useRepoStore((s) => s.checkoutBranch);
   const focusCommit = useRepoStore((s) => s.focusCommit);
-  const focusedBranch = useRepoStore((s) => s.focusedBranch);
-  const stashes = useRepoStore((s) => s.stashes);
+  const focusedBranch = useFocusedBranch();
+  const stashes = useStashes();
   const loadStashes = useRepoStore((s) => s.loadStashes);
-  const tags = useRepoStore((s) => s.tags);
+  const tags = useTags();
   const loadTags = useRepoStore((s) => s.loadTags);
   const [open, setOpen] = useState<SectionState>({
     local: true,

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useRepoStore } from "../stores/repoStore";
+import { useRepoStore, useSelectedCommit, useBranches } from "../stores/repoStore";
 import { getCommitDiff } from "../utils/ipc";
 import type { DiffContent, DiffFile } from "../types";
 import PanelHeader from "./PanelHeader";
@@ -13,11 +13,11 @@ interface Props {
 }
 
 export default function CommitDetails({ onViewFile }: Props) {
-  const commit = useRepoStore((s) => s.selectedCommit);
+  const commit = useSelectedCommit();
   const path = useRepoStore((s) => s.path);
   const checkoutCommit = useRepoStore((s) => s.checkoutCommit);
   const cherryPick = useRepoStore((s) => s.cherryPick);
-  const branches = useRepoStore((s) => s.branches);
+  const branches = useBranches();
   const currentBranch = branches.find((b) => b.is_head);
   const [diff, setDiff] = useState<DiffContent | null>(null);
   const [loading, setLoading] = useState(false);

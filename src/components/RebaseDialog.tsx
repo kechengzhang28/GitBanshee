@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useRepoStore } from "../stores/repoStore";
+import { useRepoStore, useBranches } from "../stores/repoStore";
 import { GitBranch, X } from "lucide-react";
 
 interface Props {
@@ -8,7 +8,7 @@ interface Props {
 }
 
 export default function RebaseDialog({ open, onClose }: Props) {
-  const branches = useRepoStore((s) => s.branches);
+  const branches = useBranches();
   const rebaseStart = useRepoStore((s) => s.rebaseStart);
   const rebaseContinue = useRepoStore((s) => s.rebaseContinue);
   const rebaseAbort = useRepoStore((s) => s.rebaseAbort);

@@ -42,7 +42,7 @@ pub fn create_commit(
     let repo = engine::open_repo(&path).map_err(|e| e.to_string())?;
     let oid = engine::create_commit(&repo, &message, amend).map_err(|e| e.to_string())?;
     let short = oid.to_string().chars().take(7).collect();
-    cache.clear();
+    cache.clear(&path);
     Ok(CommitResult {
         hash: oid.to_string(),
         short_hash: short,
@@ -69,7 +69,7 @@ pub fn checkout_branch(
 ) -> Result<(), String> {
     let repo = engine::open_repo(&path).map_err(|e| e.to_string())?;
     branch::checkout_branch(&repo, &name).map_err(|e| e.to_string())?;
-    cache.clear();
+    cache.clear(&path);
     Ok(())
 }
 
@@ -81,7 +81,7 @@ pub fn checkout_commit(
 ) -> Result<(), String> {
     let repo = engine::open_repo(&path).map_err(|e| e.to_string())?;
     engine::checkout_commit(&repo, &hash).map_err(|e| e.to_string())?;
-    cache.clear();
+    cache.clear(&path);
     Ok(())
 }
 
@@ -100,7 +100,7 @@ pub fn pull(
 ) -> Result<String, String> {
     let repo = engine::open_repo(&path).map_err(|e| e.to_string())?;
     let result = remote::pull(&repo, &remote_name, &branch)?;
-    cache.clear();
+    cache.clear(&path);
     Ok(result)
 }
 
@@ -132,7 +132,7 @@ pub fn stash_pop(
 ) -> Result<String, String> {
     let mut repo = engine::open_repo(&path).map_err(|e| e.to_string())?;
     let result = stash::stash_pop(&mut repo, index)?;
-    cache.clear();
+    cache.clear(&path);
     Ok(result)
 }
 
@@ -144,7 +144,7 @@ pub fn stash_apply(
 ) -> Result<String, String> {
     let mut repo = engine::open_repo(&path).map_err(|e| e.to_string())?;
     let result = stash::stash_apply(&mut repo, index)?;
-    cache.clear();
+    cache.clear(&path);
     Ok(result)
 }
 
@@ -164,7 +164,7 @@ pub fn cherry_pick(
 ) -> Result<String, String> {
     let repo = engine::open_repo(&path).map_err(|e| e.to_string())?;
     let result = cherry_pick_op(&repo, &commit_hash)?;
-    cache.clear();
+    cache.clear(&path);
     Ok(result)
 }
 
@@ -178,7 +178,7 @@ pub fn rebase_start(
 ) -> Result<String, String> {
     let repo = engine::open_repo(&path).map_err(|e| e.to_string())?;
     let result = rebase_op(&repo, &onto_branch)?;
-    cache.clear();
+    cache.clear(&path);
     Ok(result)
 }
 
@@ -189,7 +189,7 @@ pub fn rebase_continue(
 ) -> Result<String, String> {
     let repo = engine::open_repo(&path).map_err(|e| e.to_string())?;
     let result = rebase_continue_op(&repo)?;
-    cache.clear();
+    cache.clear(&path);
     Ok(result)
 }
 
@@ -200,7 +200,7 @@ pub fn rebase_abort(
 ) -> Result<String, String> {
     let repo = engine::open_repo(&path).map_err(|e| e.to_string())?;
     let result = rebase_abort_op(&repo)?;
-    cache.clear();
+    cache.clear(&path);
     Ok(result)
 }
 

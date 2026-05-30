@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useRepoStore } from "../stores/repoStore";
+import { useRepoStore, useSelectedCommit, useStashes } from "../stores/repoStore";
 import type { DiffFile } from "../types";
 import TabBar from "./TabBar";
 import RepoToolbar from "./RepoToolbar";
@@ -13,18 +13,19 @@ import BranchDialog from "./BranchDialog";
 import StashDialog from "./StashDialog";
 import RebaseDialog from "./RebaseDialog";
 import { ArrowLeft } from "lucide-react";
+import { open } from "@tauri-apps/plugin-dialog";
 import { ROW_HEIGHT } from "./constants";
 
 export default function RepoView() {
-  const error = useRepoStore((s) => s.error);
+  const error = useRepoStore((s) => s.tabs[s.path ?? '']?.error ?? null);
   const path = useRepoStore((s) => s.path);
   const loadStatus = useRepoStore((s) => s.loadStatus);
   const pullRepo = useRepoStore((s) => s.pull);
   const pushRepo = useRepoStore((s) => s.push);
   const stashPop = useRepoStore((s) => s.stashPop);
   const cherryPick = useRepoStore((s) => s.cherryPick);
-  const selectedCommit = useRepoStore((s) => s.selectedCommit);
-  const stashCount = useRepoStore((s) => s.stashes.length);
+  const selectedCommit = useSelectedCommit();
+  const stashCount = useStashes().length;
   const [showLeft, setShowLeft] = useState(true);
   const [showCommit, setShowCommit] = useState(true);
   const [showAI, setShowAI] = useState(false);
@@ -33,6 +34,13 @@ export default function RepoView() {
   const [showRebaseDialog, setShowRebaseDialog] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(1);
   const [viewingFile, setViewingFile] = useState<DiffFile | null>(null);
+
+  const handleOpenRepo = async () => {
+    const dir = await open({ directory: true, multiple: false, title: "Select a Git repository" });
+    if (dir && typeof dir === "string") {
+      useRepoStore.getState().openRepo(dir);
+    }
+  };
 
   useEffect(() => {
     if (path) loadStatus();
@@ -83,6 +91,7 @@ export default function RepoView() {
         onToggleLeft={() => setShowLeft((v) => !v)}
         onToggleCommit={() => setShowCommit((v) => !v)}
         onToggleAI={() => setShowAI((v) => !v)}
+        onOpenRepo={handleOpenRepo}
         onBranchClick={() => setShowBranchDialog(true)}
         onPull={() => pullRepo()}
         onPush={() => pushRepo()}

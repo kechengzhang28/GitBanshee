@@ -5,11 +5,11 @@ import ToastContainer from "./components/ToastContainer";
 import "./utils/init";
 
 function App() {
-  const path = useRepoStore((s) => s.path);
+  const openRepoPaths = useRepoStore((s) => s.openRepoPaths);
 
   return (
     <div className="h-screen overflow-hidden rounded-b-lg bg-gb-bg will-change-transform">
-      {path ? <RepoView /> : <RepoList />}
+      {openRepoPaths.length > 0 ? <RepoView /> : <RepoList />}
       <ToastContainer />
     </div>
   );

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useRepoStore } from "../stores/repoStore";
+import { useRepoStore, useBranches } from "../stores/repoStore";
 import { GitBranch, Trash2, X } from "lucide-react";
 
 interface Props {
@@ -8,7 +8,7 @@ interface Props {
 }
 
 export default function BranchDialog({ open, onClose }: Props) {
-  const branches = useRepoStore((s) => s.branches);
+  const branches = useBranches();
   const createBranch = useRepoStore((s) => s.createBranch);
   const deleteBranch = useRepoStore((s) => s.deleteBranch);
   const checkoutBranch = useRepoStore((s) => s.checkoutBranch);

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback, memo } from "react";
-import { useRepoStore } from "../stores/repoStore";
+import { useCommits, useRenderData, useSelectedCommit } from "../stores/repoStore";
 import { ROW_HEIGHT, LANE_WIDTH, NODE_RADIUS, PADDING_X, OVERSHOT_ROWS } from "./constants";
 
 interface GraphColumnProps {
@@ -12,9 +12,9 @@ function GraphColumn({ scrollTop, colWidth, zoomLevel = 1 }: GraphColumnProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rafRef = useRef(0);
 
-  const commits = useRepoStore((s) => s.commits);
-  const renderData = useRepoStore((s) => s.renderData);
-  const selectedCommit = useRepoStore((s) => s.selectedCommit);
+  const commits = useCommits();
+  const renderData = useRenderData();
+  const selectedCommit = useSelectedCommit();
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;

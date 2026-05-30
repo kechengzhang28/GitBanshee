@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useRepoStore } from "../stores/repoStore";
+import { useRepoStore, useStashes } from "../stores/repoStore";
 import { Archive, ArrowUpFromLine, Copy, Trash2, X } from "lucide-react";
 
 interface Props {
@@ -8,7 +8,7 @@ interface Props {
 }
 
 export default function StashDialog({ open, onClose }: Props) {
-  const stashes = useRepoStore((s) => s.stashes);
+  const stashes = useStashes();
   const loadStashes = useRepoStore((s) => s.loadStashes);
   const stashPop = useRepoStore((s) => s.stashPop);
   const stashApply = useRepoStore((s) => s.stashApply);

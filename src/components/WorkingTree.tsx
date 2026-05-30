@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { useRepoStore } from "../stores/repoStore";
+import { useRepoStore, useStatus, useLoadingStatus } from "../stores/repoStore";
 import { Check, Minus, Plus } from "lucide-react";
 
 export default function WorkingTree() {
-  const status = useRepoStore((s) => s.status);
-  const loadingStatus = useRepoStore((s) => s.loadingStatus);
+  const status = useStatus();
+  const loadingStatus = useLoadingStatus();
   const stageFile = useRepoStore((s) => s.stageFile);
   const unstageFile = useRepoStore((s) => s.unstageFile);
   const stageAll = useRepoStore((s) => s.stageAll);

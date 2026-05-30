@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback, useMemo, useState } from "react";
-import { useRepoStore } from "../stores/repoStore";
+import { useRepoStore, useCommits, useSelectedCommit, useScrollTarget } from "../stores/repoStore";
 import type { PositionedCommit } from "../types";
 import BranchColumn from "./BranchColumn";
 import GraphColumn from "./GraphColumn";
@@ -24,12 +24,12 @@ export default function CommitGraph({ zoomLevel = 1, onZoomChange, onToggleDetai
   const [viewport, setViewport] = useState({ scrollTop: 0, containerH: 0 });
 
   const path = useRepoStore((s) => s.path);
-  const commits = useRepoStore((s) => s.commits);
-  const selectedCommit = useRepoStore((s) => s.selectedCommit);
+  const commits = useCommits();
+  const selectedCommit = useSelectedCommit();
   const loadCommits = useRepoStore((s) => s.loadCommits);
   const loadBranches = useRepoStore((s) => s.loadBranches);
   const selectCommit = useRepoStore((s) => s.selectCommit);
-  const scrollTarget = useRepoStore((s) => s.scrollTarget);
+  const scrollTarget = useScrollTarget();
 
   const commitsLenRef = useRef(0);
   commitsLenRef.current = commits.length;
@@ -60,7 +60,10 @@ export default function CommitGraph({ zoomLevel = 1, onZoomChange, onToggleDetai
     const el = scrollRef.current;
     if (!el) return;
     el.scrollTop = idx * ROW_HEIGHT;
-    useRepoStore.setState({ scrollTarget: null });
+    useRepoStore.setState((state) => {
+      if (!state.path || !state.tabs[state.path]) return {};
+      return { tabs: { ...state.tabs, [state.path]: { ...state.tabs[state.path], scrollTarget: null } } };
+    });
   }, [scrollTarget, commits]);
 
   useEffect(() => {

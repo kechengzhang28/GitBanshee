@@ -1,4 +1,4 @@
-import { useRepoStore } from "../stores/repoStore";
+import { useRepoStore, useCommitCount, useBranches, useStatus } from "../stores/repoStore";
 
 interface Props {
   zoomLevel?: number;
@@ -6,9 +6,9 @@ interface Props {
 
 export default function StatusBar({ zoomLevel = 1 }: Props) {
   const path = useRepoStore((s) => s.path);
-  const commitCount = useRepoStore((s) => s.commitCount);
-  const branches = useRepoStore((s) => s.branches);
-  const status = useRepoStore((s) => s.status);
+  const commitCount = useCommitCount();
+  const branches = useBranches();
+  const status = useStatus();
   const current = branches.find((b) => b.is_head);
 
   if (!path) return null;

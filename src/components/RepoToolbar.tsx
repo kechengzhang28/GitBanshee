@@ -1,4 +1,4 @@
-import { Undo2, Redo2, Download, Upload, GitBranch, Archive, ArrowUpFromLine, PanelLeft, Info, Sparkles, GitMerge, GitPullRequest } from "lucide-react";
+import { Undo2, Redo2, Download, Upload, GitBranch, Archive, ArrowUpFromLine, PanelLeft, Info, Sparkles, FolderOpen, GitMerge, GitPullRequest } from "lucide-react";
 import Button from "./ui/Button";
 
 interface Props {
@@ -9,6 +9,7 @@ interface Props {
   onToggleCommit: () => void;
   onToggleAI: () => void;
   onBranchClick: () => void;
+  onOpenRepo: () => void;
   onPull: () => void;
   onPush: () => void;
   onStashClick: () => void;
@@ -26,6 +27,7 @@ export default function RepoToolbar({
   onToggleCommit,
   onToggleAI,
   onBranchClick,
+  onOpenRepo,
   onPull,
   onPush,
   onStashClick,
@@ -42,6 +44,7 @@ export default function RepoToolbar({
       <Button variant="ghost" size="sm" icon={Download} className="text-gb-accent" onClick={onPull}>Pull</Button>
       <Button variant="ghost" size="sm" icon={Upload} onClick={onPush}>Push</Button>
       <Separator />
+      <Button variant="ghost" size="sm" icon={FolderOpen} onClick={onOpenRepo} title="Open Repository">Open</Button>
       <Button variant="ghost" size="sm" icon={GitBranch} onClick={onBranchClick}>Branch</Button>
       <Separator />
       <Button variant="ghost" size="sm" icon={Archive} onClick={onStashClick}>Stash</Button>
