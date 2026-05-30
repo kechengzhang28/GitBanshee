@@ -12,7 +12,7 @@ import DiffViewer from "./DiffViewer";
 import BranchDialog from "./BranchDialog";
 import StashDialog from "./StashDialog";
 import RebaseDialog from "./RebaseDialog";
-import { ArrowLeft } from "lucide-react";
+import { SquareArrowLeft } from "lucide-react";
 import { open } from "@tauri-apps/plugin-dialog";
 import { ROW_HEIGHT } from "./constants";
 
@@ -112,15 +112,15 @@ export default function RepoView() {
         <div className="flex-1 overflow-hidden">
           {viewingFile ? (
             <div className="flex h-full flex-col bg-gb-bg">
-              <div className="flex shrink-0 items-center gap-2 border-b border-gb-border bg-gb-toolbar px-3 py-1">
+              <div className="flex h-[28px] shrink-0 items-center gap-2 border-b border-gb-border bg-gb-panel px-3 text-xs font-semibold uppercase tracking-wider text-gb-text-sec">
                 <button
                   onClick={() => setViewingFile(null)}
-                  className="flex items-center gap-1 rounded px-1.5 py-0.5 text-xs text-gb-text-muted hover:bg-gb-hover hover:text-gb-text"
+                  className="flex items-center justify-center rounded p-0.5 text-gb-text-sec hover:bg-gb-hover hover:text-gb-text"
                 >
-                  <ArrowLeft size={14} />
-                  Back to graph
+                  <SquareArrowLeft size={16} />
                 </button>
-                <span className="text-xs text-gb-text-sec">{viewingFile.path}</span>
+                <div className="mx-1 h-4 w-px bg-gb-border" />
+                <span className="normal-case text-gb-text-sec">{viewingFile.path}</span>
               </div>
               <div className="flex-1 overflow-hidden">
                 <DiffViewer file={viewingFile} />
