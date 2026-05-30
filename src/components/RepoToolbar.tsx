@@ -1,15 +1,13 @@
-import { Undo2, Redo2, Download, Upload, GitBranch, Archive, ArrowUpFromLine, PanelLeft, Info, Sparkles, FolderOpen, GitMerge, GitPullRequest } from "lucide-react";
+import { Undo2, Redo2, Download, Upload, GitBranch, Archive, ArrowUpFromLine, PanelLeft, Info, Sparkles, GitMerge, GitPullRequest } from "lucide-react";
 import Button from "./ui/Button";
 
 interface Props {
   showLeft: boolean;
   showCommit: boolean;
   showAI: boolean;
-  showTree: boolean;
   onToggleLeft: () => void;
   onToggleCommit: () => void;
   onToggleAI: () => void;
-  onToggleTree: () => void;
   onBranchClick: () => void;
   onPull: () => void;
   onPush: () => void;
@@ -24,11 +22,9 @@ export default function RepoToolbar({
   showLeft,
   showCommit,
   showAI,
-  showTree,
   onToggleLeft,
   onToggleCommit,
   onToggleAI,
-  onToggleTree,
   onBranchClick,
   onPull,
   onPush,
@@ -55,14 +51,6 @@ export default function RepoToolbar({
       <Button variant="ghost" size="sm" icon={GitPullRequest} onClick={onCherryPick} title="Cherry-pick selected commit">Pick</Button>
       <div className="flex-1" />
       <Separator />
-      <Button
-        variant="ghost"
-        size="sm"
-        icon={FolderOpen}
-        onClick={onToggleTree}
-        title="Toggle Working Tree"
-        className={showTree ? "text-gb-accent" : "text-gb-text-muted"}
-      />
       <Button
         variant="ghost"
         size="sm"

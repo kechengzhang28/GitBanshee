@@ -9,7 +9,6 @@ import CommitDetails from "./CommitDetails";
 import AIPanel from "./ai/AIPanel";
 import StatusBar from "./StatusBar";
 import DiffViewer from "./DiffViewer";
-import WorkingTree from "./WorkingTree";
 import BranchDialog from "./BranchDialog";
 import StashDialog from "./StashDialog";
 import RebaseDialog from "./RebaseDialog";
@@ -29,7 +28,6 @@ export default function RepoView() {
   const [showLeft, setShowLeft] = useState(true);
   const [showCommit, setShowCommit] = useState(true);
   const [showAI, setShowAI] = useState(false);
-  const [showTree, setShowTree] = useState(false);
   const [showBranchDialog, setShowBranchDialog] = useState(false);
   const [showStashDialog, setShowStashDialog] = useState(false);
   const [showRebaseDialog, setShowRebaseDialog] = useState(false);
@@ -82,11 +80,9 @@ export default function RepoView() {
         showLeft={showLeft}
         showCommit={showCommit}
         showAI={showAI}
-        showTree={showTree}
         onToggleLeft={() => setShowLeft((v) => !v)}
         onToggleCommit={() => setShowCommit((v) => !v)}
         onToggleAI={() => setShowAI((v) => !v)}
-        onToggleTree={() => setShowTree((v) => !v)}
         onBranchClick={() => setShowBranchDialog(true)}
         onPull={() => pullRepo()}
         onPush={() => pushRepo()}
@@ -140,11 +136,6 @@ export default function RepoView() {
           </div>
         )}
       </div>
-      {showTree && (
-        <div className="h-[180px] shrink-0">
-          <WorkingTree />
-        </div>
-      )}
       <StatusBar zoomLevel={zoomLevel} />
       <BranchDialog
         open={showBranchDialog}
