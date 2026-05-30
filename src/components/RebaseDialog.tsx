@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRepoStore } from "../stores/repoStore";
-import { GitBranch } from "lucide-react";
+import { GitBranch, X } from "lucide-react";
 
 interface Props {
   open: boolean;
@@ -16,6 +16,13 @@ export default function RebaseDialog({ open, onClose }: Props) {
 
   const [selected, setSelected] = useState("");
 
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [open, onClose]);
+
   if (!open) return null;
 
   const localBranches = branches.filter(
@@ -29,15 +36,15 @@ export default function RebaseDialog({ open, onClose }: Props) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="w-80 rounded-lg border border-gb-border bg-gb-panel shadow-xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
+      <div className="w-80 rounded-lg border border-gb-border bg-gb-panel shadow-xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between border-b border-gb-border px-4 py-2">
           <span className="text-sm font-semibold text-gb-text">Rebase</span>
           <button
             onClick={onClose}
-            className="text-gb-text-muted hover:text-gb-text text-xs"
+            className="text-gb-text-muted hover:text-gb-text"
           >
-            Esc
+            <X size={14} />
           </button>
         </div>
 
