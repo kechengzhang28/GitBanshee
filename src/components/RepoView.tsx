@@ -12,7 +12,7 @@ import DiffViewer from "./DiffViewer";
 import BranchDialog from "./BranchDialog";
 import StashDialog from "./StashDialog";
 import RebaseDialog from "./RebaseDialog";
-import { SquareArrowLeft } from "lucide-react";
+import { ChevronLeft, WrapText } from "lucide-react";
 import { open } from "@tauri-apps/plugin-dialog";
 import { ROW_HEIGHT } from "./constants";
 
@@ -34,6 +34,7 @@ export default function RepoView() {
   const [showRebaseDialog, setShowRebaseDialog] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(1);
   const [viewingFile, setViewingFile] = useState<DiffFile | null>(null);
+  const [wrapLines, setWrapLines] = useState(false);
 
   const handleOpenRepo = async () => {
     const dir = await open({ directory: true, multiple: false, title: "Select a Git repository" });
@@ -112,18 +113,27 @@ export default function RepoView() {
         <div className="flex-1 overflow-hidden">
           {viewingFile ? (
             <div className="flex h-full flex-col bg-gb-bg">
-              <div className="flex h-[28px] shrink-0 items-center gap-2 border-b border-gb-border bg-gb-panel px-3 text-xs font-semibold uppercase tracking-wider text-gb-text-sec">
+              <div className="flex h-[28px] shrink-0 items-center gap-1 border-b border-gb-border bg-gb-panel px-3 text-xs font-semibold uppercase tracking-wider text-gb-text-sec">
                 <button
                   onClick={() => setViewingFile(null)}
                   className="flex items-center justify-center rounded p-0.5 text-gb-text-sec hover:bg-gb-hover hover:text-gb-text"
                 >
-                  <SquareArrowLeft size={16} />
+                  <ChevronLeft size={16} />
                 </button>
-                <div className="mx-1 h-4 w-px bg-gb-border" />
                 <span className="normal-case text-gb-text-sec">{viewingFile.path}</span>
+                <div className="flex-1" />
+                <button
+                  onClick={() => setWrapLines((v) => !v)}
+                  className={`flex items-center justify-center rounded p-0.5 hover:bg-gb-hover ${
+                    wrapLines ? "text-gb-text" : "text-gb-text-sec"
+                  } hover:text-gb-text`}
+                  title="Toggle word wrap"
+                >
+                  <WrapText size={16} />
+                </button>
               </div>
               <div className="flex-1 overflow-hidden">
-                <DiffViewer file={viewingFile} />
+                <DiffViewer file={viewingFile} wrap={wrapLines} />
               </div>
             </div>
           ) : (
