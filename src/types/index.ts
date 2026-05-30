@@ -69,6 +69,12 @@ export interface OpenRepoResult {
   commit_count: number;
 }
 
+export interface RemoteInfo {
+  platform: string | null;
+  owner: string | null;
+  avatar_url: string | null;
+}
+
 export interface DiffContent {
   files: DiffFile[];
 }

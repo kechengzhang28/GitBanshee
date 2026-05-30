@@ -8,6 +8,7 @@ import type {
   MergeCurve,
   OpenRepoResult,
   PositionedCommit,
+  RemoteInfo,
   StashEntry,
   StatusEntry,
   TagInfo,
@@ -48,6 +49,14 @@ export async function getCommitDiff(
   hash: string,
 ): Promise<DiffContent> {
   return invoke<DiffContent>("get_commit_diff", { path, hash });
+}
+
+export async function getRemoteInfo(path: string): Promise<RemoteInfo | null> {
+  return invoke<RemoteInfo | null>("get_remote_info", { path });
+}
+
+export async function getAuthorAvatar(path: string, sha: string): Promise<string | null> {
+  return invoke<string | null>("get_author_avatar", { path, sha });
 }
 
 export async function getStatus(path: string): Promise<StatusEntry[]> {

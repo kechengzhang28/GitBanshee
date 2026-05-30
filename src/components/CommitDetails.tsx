@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRepoStore, useSelectedCommit, useBranches } from "../stores/repoStore";
-import { getCommitDiff } from "../utils/ipc";
+import { getCommitDiff, getAuthorAvatar } from "../utils/ipc";
 import type { DiffContent, DiffFile } from "../types";
 import PanelHeader from "./PanelHeader";
 import FileExplorer from "./FileExplorer";
@@ -23,6 +23,9 @@ export default function CommitDetails({ onViewFile }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [avatarFailed, setAvatarFailed] = useState(false);
+  const lastAvatarSha = useRef<string | null>(null);
 
   const hash = commit?.sha ?? null;
 
@@ -41,6 +44,29 @@ export default function CommitDetails({ onViewFile }: Props) {
       })
       .catch((e) => setError(String(e)))
       .finally(() => setLoading(false));
+  }, [path, hash]);
+
+  // Fetch author avatar when commit changes
+  useEffect(() => {
+    if (!path || !hash) {
+      setAvatarUrl(null);
+      setAvatarFailed(false);
+      lastAvatarSha.current = null;
+      return;
+    }
+    // Avoid re-fetching the same commit
+    if (lastAvatarSha.current === hash) return;
+    lastAvatarSha.current = hash;
+
+    getAuthorAvatar(path, hash)
+      .then((url) => {
+        setAvatarUrl(url);
+        setAvatarFailed(false);
+      })
+      .catch(() => {
+        setAvatarUrl(null);
+        setAvatarFailed(true);
+      });
   }, [path, hash]);
 
   const handleSelect = (filePath: string) => {
@@ -92,9 +118,23 @@ export default function CommitDetails({ onViewFile }: Props) {
             )}
           </div>
         </div>
-        <div>
+        <div className="flex items-center gap-2">
           <span className="text-gb-text-muted">Author</span>{" "}
-          <span className="text-gb-text">{commit.author}</span>
+          <span className="inline-flex items-center gap-1.5 text-gb-text">
+            {avatarUrl && !avatarFailed ? (
+              <img
+                src={avatarUrl}
+                alt=""
+                onError={() => setAvatarFailed(true)}
+                className="h-5 w-5 rounded-full object-cover"
+              />
+            ) : (
+              <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-gb-hover text-[10px] text-gb-text-muted leading-none select-none shrink-0">
+                {commit.author.charAt(0).toUpperCase()}
+              </span>
+            )}
+            {commit.author}
+          </span>
         </div>
         <div>
           <span className="text-gb-text-muted">Date</span>{" "}

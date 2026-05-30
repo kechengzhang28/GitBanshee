@@ -4,6 +4,7 @@ mod graph;
 mod models;
 
 use commands::repo::CommitCache;
+use commands::repo::AvatarCache;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -11,8 +12,16 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .manage(CommitCache::new())
+        .manage(AvatarCache::new(
+            std::env::current_dir()
+                .unwrap_or_default()
+                .join(".cache")
+                .join("avatars"),
+        ))
         .invoke_handler(tauri::generate_handler![
             commands::repo::open_repo,
+            commands::repo::get_remote_info,
+            commands::repo::get_author_avatar,
             commands::repo::get_commits,
             commands::repo::get_branches,
             commands::repo::get_tags,
