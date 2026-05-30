@@ -27,7 +27,7 @@ export default function DiffViewer({ file }: Props) {
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
-      <div className="shrink-0 border-b border-gb-border bg-gb-toolbar px-3 py-1 text-xs text-gb-text">
+      <div className="flex h-7 shrink-0 items-center border-b border-gb-border bg-gb-panel px-3 text-xs text-gb-text">
         {file.path}
       </div>
       <div className="flex-1 overflow-auto font-mono text-xs leading-5">

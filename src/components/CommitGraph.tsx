@@ -167,7 +167,7 @@ export default function CommitGraph({ zoomLevel = 1, onZoomChange, onToggleDetai
 
   return (
     <div className="flex h-full w-full flex-col overflow-hidden bg-gb-bg">
-      <div className="flex shrink-0 items-center border-b border-gb-border text-xs font-medium uppercase tracking-wider text-gb-text-muted"
+      <div className="flex shrink-0 items-center border-b border-gb-border bg-gb-panel text-xs font-semibold uppercase tracking-wider text-gb-text-sec"
         style={{ height: HEADER_HEIGHT, lineHeight: `${HEADER_HEIGHT}px` }}>
         <div className="shrink-0 border-r border-gb-border pl-3" style={{ width: BRANCH_COL_WIDTH, height: "100%" }}>
           Branch

@@ -82,9 +82,9 @@ export default function WorkingTree() {
 
       <div className="flex flex-1 overflow-hidden">
         <div className="flex flex-1 flex-col overflow-hidden border-t border-gb-border">
-          <div className="flex shrink-0 items-center justify-between border-b border-gb-border px-3 py-1">
-            <span className="text-xs font-semibold text-gb-text-sec">
-              Staged ({staged.length})
+          <div className="flex shrink-0 items-center justify-between border-b border-gb-border bg-gb-panel px-3 py-1">
+            <span className="text-xs font-semibold tracking-wider text-gb-text-muted">
+              STAGED ({staged.length})
             </span>
             <button
               onClick={stageAll}
@@ -104,7 +104,7 @@ export default function WorkingTree() {
               staged.map((f) => (
                 <div
                   key={f.path}
-                  className="flex h-6 items-center gap-1.5 px-3 text-xs hover:bg-gb-hover"
+                  className="flex h-7 items-center gap-1.5 bg-gb-panel px-3 text-xs hover:bg-gb-hover"
                 >
                   <Check size={12} className="text-gb-success shrink-0" />
                   <span className="flex-1 truncate text-gb-text">{f.path}</span>
@@ -122,9 +122,9 @@ export default function WorkingTree() {
         </div>
 
         <div className="flex flex-1 flex-col overflow-hidden border-l border-t border-gb-border">
-          <div className="flex shrink-0 items-center border-b border-gb-border px-3 py-1">
-            <span className="text-xs font-semibold text-gb-text-sec">
-              Changes ({unstaged.length})
+          <div className="flex shrink-0 items-center border-b border-gb-border bg-gb-panel px-3 py-1">
+            <span className="text-xs font-semibold tracking-wider text-gb-text-muted">
+              CHANGES ({unstaged.length})
             </span>
           </div>
           <div className="flex-1 overflow-y-auto">
@@ -138,7 +138,7 @@ export default function WorkingTree() {
               unstaged.map((f) => (
                 <div
                   key={f.path}
-                  className="flex h-6 items-center gap-1.5 px-3 text-xs hover:bg-gb-hover"
+                  className="flex h-7 items-center gap-1.5 bg-gb-panel px-3 text-xs hover:bg-gb-hover"
                 >
                   <span
                     className={`shrink-0 ${

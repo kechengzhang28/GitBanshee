@@ -63,7 +63,7 @@ export default function CommitDetails({ onViewFile }: Props) {
   return (
     <div className="flex h-full flex-col bg-gb-panel">
       <PanelHeader title="Commit Details" />
-      <div className="shrink-0 space-y-1 border-b border-gb-border px-3 py-2 text-xs">
+      <div className="shrink-0 space-y-1 border-b border-gb-border bg-gb-panel px-3 py-2 text-xs">
         <div className="flex items-center justify-between">
           <span>
             <span className="text-gb-text-muted">Hash</span>{" "}
@@ -112,7 +112,7 @@ export default function CommitDetails({ onViewFile }: Props) {
 
       {!loading && !error && diff && diff.files.length > 0 && (
         <>
-          <div className="flex shrink-0 items-center gap-2 border-b border-gb-border px-3 py-1 text-xs">
+          <div className="flex shrink-0 items-center gap-2 border-b border-gb-border bg-gb-panel px-3 py-1 text-xs">
             <span className="text-gb-success font-mono">+{totalAdd}</span>
             <span className="text-gb-danger font-mono">-{totalDel}</span>
             <span className="text-gb-text-muted">{diff.files.length} files</span>
