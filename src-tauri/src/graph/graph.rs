@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 use std::collections::HashMap;
 use git2::{Oid, Repository, Sort};
 use crate::graph::sort::temporal_topological_sort;
@@ -11,6 +10,7 @@ pub struct GraphConfig {
     pub colors: Vec<String>,
     pub initial_count: usize,
     pub load_more_count: usize,
+    #[allow(dead_code)]
     pub first_parent_only: bool,
 }
 
@@ -63,6 +63,7 @@ impl CommitGraph {
         Self::open(path, config)
     }
 
+    #[allow(dead_code)]
     pub fn refresh(&mut self, branch_filter: Option<&str>) -> Result<(), String> {
         self.nodes.clear();
         self.ordered_hashes.clear();
@@ -143,6 +144,7 @@ impl CommitGraph {
         self.has_more
     }
 
+    #[allow(dead_code)]
     pub fn commit_count(&self) -> usize {
         self.ordered_hashes.len()
     }

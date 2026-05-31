@@ -1,5 +1,4 @@
 pub mod branch;
-pub mod commit;
 pub mod diff;
 pub mod graph;
 pub mod remote;
