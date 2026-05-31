@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use crate::graph::types::CommitNode;
 
 pub fn temporal_topological_sort(nodes: &HashMap<String, CommitNode>) -> Vec<String> {
@@ -9,30 +9,28 @@ pub fn temporal_topological_sort(nodes: &HashMap<String, CommitNode>) -> Vec<Str
     });
 
     let mut sorted: Vec<String> = Vec::with_capacity(nodes.len());
-    let mut visited = HashMap::new();
-
-    fn dfs(
-        sha: &str,
-        nodes: &HashMap<String, CommitNode>,
-        visited: &mut HashMap<String, bool>,
-        sorted: &mut Vec<String>,
-    ) {
-        if visited.contains_key(sha) {
-            return;
-        }
-        visited.insert(sha.to_owned(), true);
-
-        if let Some(node) = nodes.get(sha) {
-            for child in &node.children {
-                dfs(child, nodes, visited, sorted);
-            }
-        }
-
-        sorted.push(sha.to_owned());
-    }
+    let mut visited: HashSet<&str> = HashSet::with_capacity(nodes.len());
 
     for commit in &commits {
-        dfs(&commit.sha, nodes, &mut visited, &mut sorted);
+        let mut stack = vec![(commit.sha.as_str(), false)];
+
+        while let Some((sha, processed)) = stack.pop() {
+            if processed {
+                sorted.push(sha.to_owned());
+                continue;
+            }
+            if !visited.insert(sha) {
+                continue;
+            }
+            stack.push((sha, true));
+            if let Some(node) = nodes.get(sha) {
+                for child in node.children.iter().rev() {
+                    if !visited.contains(child.as_str()) {
+                        stack.push((child.as_str(), false));
+                    }
+                }
+            }
+        }
     }
 
     sorted

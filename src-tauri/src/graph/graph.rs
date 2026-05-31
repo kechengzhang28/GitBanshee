@@ -59,8 +59,7 @@ impl CommitGraph {
     }
 
     pub fn open_with_count(path: &str, count: usize) -> Result<Self, String> {
-        let mut config = GraphConfig::default();
-        config.initial_count = count;
+        let config = GraphConfig { initial_count: count, ..Default::default() };
         Self::open(path, config)
     }
 
@@ -202,12 +201,15 @@ impl CommitGraph {
             }
         }
 
+        let head_oid = self.repo.head().ok().and_then(|h| h.target());
+        let head_shorthand = self.repo.head().ok().and_then(|h| h.shorthand().map(|s| s.to_string()));
+
         let mut loaded = 0;
         loop {
             match walk.next() {
                 Some(Ok(id)) => {
                     if self.nodes.contains_key(&id.to_string()) {
-                        continue; // Skip already-loaded commits
+                        continue;
                     }
 
                     let commit = match self.repo.find_commit(id) {
@@ -224,17 +226,14 @@ impl CommitGraph {
                     let message = commit.message().unwrap_or("").trim().to_string();
 
                     let mut refs = self.ref_map.get(&id).cloned().unwrap_or_default();
-                    let mut is_head = false;
-                    if let Ok(head) = self.repo.head() {
-                        if head.target() == Some(id) {
-                            is_head = true;
-                            if let Some(shorthand) = head.shorthand() {
-                                refs.push(RefInfo {
-                                    kind: RefKind::Head,
-                                    name: shorthand.to_string(),
-                                    display_name: shorthand.to_string(),
-                                });
-                            }
+                    let is_head = head_oid == Some(id);
+                    if is_head {
+                        if let Some(ref shorthand) = head_shorthand {
+                            refs.push(RefInfo {
+                                kind: RefKind::Head,
+                                name: shorthand.clone(),
+                                display_name: shorthand.clone(),
+                            });
                         }
                     }
 

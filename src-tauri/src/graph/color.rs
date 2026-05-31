@@ -10,19 +10,30 @@ pub fn assign_colors(
     let mut commit_color: HashMap<String, String> = HashMap::new();
     let mut commit_color_idx: HashMap<String, usize> = HashMap::new();
 
+    let mut col_rows: Vec<Vec<(usize, &String)>> = vec![Vec::new(); columns.len()];
+    for (row, sha) in ordered_hashes.iter().enumerate() {
+        if let Some(&col) = commit_col_map.get(sha) {
+            if col < col_rows.len() {
+                col_rows[col].push((row, sha));
+            }
+        }
+    }
+
     for (col, segments) in columns.iter().enumerate() {
+        let rows = &col_rows[col];
         for seg in segments {
             let ci = seg.branch_order % colors.len();
+            let color = &colors[ci];
 
-            for (row, sha) in ordered_hashes.iter().enumerate() {
-                if row < seg.start_row || row > seg.end_row {
-                    continue;
+            let start = match rows.binary_search_by(|(r, _)| r.cmp(&seg.start_row)) {
+                Ok(i) => i,
+                Err(i) => i,
+            };
+            for &(row, sha) in &rows[start..] {
+                if row > seg.end_row {
+                    break;
                 }
-                if commit_col_map.get(sha) != Some(&col) {
-                    continue;
-                }
-                let color = colors[ci].clone();
-                commit_color.insert(sha.clone(), color);
+                commit_color.insert(sha.clone(), color.clone());
                 commit_color_idx.insert(sha.clone(), ci);
             }
         }

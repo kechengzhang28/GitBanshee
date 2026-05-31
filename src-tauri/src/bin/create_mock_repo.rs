@@ -41,7 +41,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut branch_tips: Vec<Oid> = Vec::new();
 
     for (i, name) in branches.iter().enumerate() {
-        repo.branch(*name, &repo.find_commit(b)?, false)?;
+        repo.branch(name, &repo.find_commit(b)?, false)?;
         let mut tip = b;
         let count = commits_per_branch[i];
         for j in 0..count {
@@ -161,7 +161,7 @@ fn commit(repo: &Repository, t: &mut i64, base: i64, msg: &str, parents: &[Oid])
     repo.odb().unwrap().write(git2::ObjectType::Commit, &buf).unwrap()
 }
 
-fn empty_tree(repo: &Repository) -> git2::Tree {
+fn empty_tree(repo: &Repository) -> git2::Tree<'_> {
     let mut index = repo.index().unwrap();
     let oid = index.write_tree().unwrap();
     repo.find_tree(oid).unwrap()

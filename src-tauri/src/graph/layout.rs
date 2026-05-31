@@ -81,7 +81,7 @@ pub fn assign_columns(
                 .unwrap_or(0);
 
             let found = (max_child_col + 1..columns.len()).find(|&col| {
-                columns[col].last().map_or(true, |seg| min_child_row >= seg.end_row)
+                columns[col].last().is_none_or(|seg| min_child_row >= seg.end_row)
             });
 
             if let Some(col) = found {

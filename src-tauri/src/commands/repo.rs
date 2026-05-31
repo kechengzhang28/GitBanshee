@@ -245,18 +245,17 @@ pub fn get_commits(
 ) -> Result<GetCommitsResponse, String> {
     let needed = offset + limit;
 
-    // Check worktree for uncommitted changes (independent of cache)
-    let has_uncommitted = detect_uncommitted(&path);
-
     {
         let cached = cache.data.lock().unwrap();
         if let Some(cd) = cached.get(&path) {
             if needed <= cd.commits.len() {
+                let has_uncommitted = offset == 0 && detect_uncommitted(&path);
                 return Ok(build_response(cd, offset, limit, has_uncommitted));
             }
         }
     }
 
+    let has_uncommitted = offset == 0 && detect_uncommitted(&path);
     let count = needed.max(2000);
     let graph = CommitGraph::open_with_count(&path, count)?;
     let data = graph.render().ok_or("no commits")?;
@@ -287,63 +286,64 @@ fn build_response(
     let start = offset.min(data.commits.len());
     let end = needed.min(data.commits.len());
 
+    if !has_uncommitted {
+        return GetCommitsResponse {
+            commits: data.commits[start..end].to_vec(),
+            branch_paths: data.branch_paths.clone(),
+            merge_curves: data.merge_curves.clone(),
+            fork_curves: data.fork_curves.clone(),
+        };
+    }
+
     let mut commits: Vec<PositionedCommit> = data.commits[start..end].to_vec();
     let mut branch_paths = data.branch_paths.clone();
     let mut merge_curves = data.merge_curves.clone();
     let mut fork_curves = data.fork_curves.clone();
 
-    if has_uncommitted {
-        // Find HEAD commit's column and color
-        let head_info: Option<(usize, &str)> = data.commits.iter()
-            .find(|c| matches!(c.dot_type, DotType::Head))
-            .map(|c| (c.col, c.color.as_str()));
-        let (head_col, head_color) = head_info.unwrap_or((0, "#d29922"));
+    let head_info: Option<(usize, &str)> = data.commits.iter()
+        .find(|c| matches!(c.dot_type, DotType::Head))
+        .map(|c| (c.col, c.color.as_str()));
+    let (head_col, head_color) = head_info.unwrap_or((0, "#d29922"));
 
-        // Shift all existing rows by +1 (always, regardless of offset)
-        for c in &mut commits {
-            c.row += 1;
-        }
-        for bp in &mut branch_paths {
-            bp.start_row += 1;
-            bp.end_row += 1;
-        }
-        for mc in &mut merge_curves {
-            mc.from_row += 1;
-            mc.to_row += 1;
-        }
-        for fc in &mut fork_curves {
-            fc.from_row += 1;
-            fc.to_row += 1;
-        }
-
-        // Dashed vertical connector line from uncommitted (row 0) to HEAD (row 1)
-        branch_paths.push(BranchPath {
-            col: head_col,
-            start_row: 0,
-            end_row: 1,
-            color: head_color.to_string(),
-            dashed: true,
-        });
-
-        // Only insert the pseudo-node when offset == 0 (first page)
-        if offset == 0 {
-            let uncommitted = PositionedCommit {
-                sha: "__UNCOMMITTED__".into(),
-                short_sha: "__UNCOMMITTED__".into(),
-                col: head_col,
-                row: 0,
-                color: head_color.to_string(),
-                dot_type: DotType::Uncommitted,
-                author: String::new(),
-                author_email: String::new(),
-                message: "Uncommitted changes".into(),
-                committer_date: 0,
-                refs: vec![],
-                parents: vec![],
-            };
-            commits.insert(0, uncommitted);
-        }
+    for c in &mut commits {
+        c.row += 1;
     }
+    for bp in &mut branch_paths {
+        bp.start_row += 1;
+        bp.end_row += 1;
+    }
+    for mc in &mut merge_curves {
+        mc.from_row += 1;
+        mc.to_row += 1;
+    }
+    for fc in &mut fork_curves {
+        fc.from_row += 1;
+        fc.to_row += 1;
+    }
+
+    branch_paths.push(BranchPath {
+        col: head_col,
+        start_row: 0,
+        end_row: 1,
+        color: head_color.to_string(),
+        dashed: true,
+    });
+
+    let uncommitted = PositionedCommit {
+        sha: "__UNCOMMITTED__".into(),
+        short_sha: "__UNCOMMITTED__".into(),
+        col: head_col,
+        row: 0,
+        color: head_color.to_string(),
+        dot_type: DotType::Uncommitted,
+        author: String::new(),
+        author_email: String::new(),
+        message: "Uncommitted changes".into(),
+        committer_date: 0,
+        refs: vec![],
+        parents: vec![],
+    };
+    commits.insert(0, uncommitted);
 
     GetCommitsResponse {
         commits,

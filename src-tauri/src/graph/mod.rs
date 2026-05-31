@@ -1,4 +1,5 @@
 pub mod color;
+#[allow(clippy::module_inception)]
 pub mod graph;
 pub mod layout;
 pub mod path;
