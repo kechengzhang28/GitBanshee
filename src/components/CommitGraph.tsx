@@ -181,7 +181,7 @@ export default function CommitGraph({ zoomLevel = 1, onZoomChange, onToggleDetai
         >
           Graph
         </div>
-        <div className="flex-1 pl-3" style={{ height: "100%" }}>
+        <div className="min-w-0 flex-1 truncate pl-3" style={{ height: "100%" }}>
           Commit Message
         </div>
       </div>
