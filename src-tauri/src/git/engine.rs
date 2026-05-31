@@ -19,12 +19,7 @@ pub fn get_head_sha(path: &str) -> String {
         Ok(c) => c,
         Err(_) => return String::new(),
     };
-    let sha = commit.id().to_string();
-    // Drop `repo` explicitly before returning — the `String` owns its data.
-    drop(commit);
-    drop(head);
-    drop(repo);
-    sha
+    commit.id().to_string()
 }
 
 pub fn count_commits(repo: &Repository) -> Result<usize, git2::Error> {
@@ -52,42 +47,34 @@ fn push_all_branches(repo: &Repository, revwalk: &mut git2::Revwalk) -> Result<(
 
 pub fn get_branches(repo: &Repository) -> Result<Vec<BranchInfo>, git2::Error> {
     let mut result = Vec::new();
-
-    // Local branches
-    let local = repo.branches(Some(BranchType::Local))?;
-    for branch in local {
-        let (b, _bt) = branch?;
-        let name = b.name()?.unwrap_or("").to_string();
-        let target = b.get().target().map(|oid| oid.to_string());
-        let is_head = b.is_head();
-        let upstream = b.upstream().ok().and_then(|u| {
-            u.name().ok().flatten().map(|n| n.to_string())
-        });
-        result.push(BranchInfo {
-            name,
-            is_head,
-            target_commit: target,
-            upstream,
-            is_remote: false,
-        });
-    }
-
-    // Remote branches
-    let remotes = repo.branches(Some(BranchType::Remote))?;
-    for branch in remotes {
-        let (b, _bt) = branch?;
-        let name = b.name()?.unwrap_or("").to_string();
-        let target = b.get().target().map(|oid| oid.to_string());
-        result.push(BranchInfo {
-            name,
-            is_head: false,
-            target_commit: target,
-            upstream: None,
-            is_remote: true,
-        });
-    }
-
+    collect_branches(repo, BranchType::Local, &mut result, true)?;
+    collect_branches(repo, BranchType::Remote, &mut result, false)?;
     Ok(result)
+}
+
+fn collect_branches(
+    repo: &Repository,
+    kind: BranchType,
+    out: &mut Vec<BranchInfo>,
+    with_head_and_upstream: bool,
+) -> Result<(), git2::Error> {
+    for branch in repo.branches(Some(kind))? {
+        let (b, _bt) = branch?;
+        let name = b.name()?.unwrap_or("").to_string();
+        let target = b.get().target().map(|oid| oid.to_string());
+        out.push(BranchInfo {
+            name,
+            is_head: if with_head_and_upstream { b.is_head() } else { false },
+            target_commit: target,
+            upstream: if with_head_and_upstream {
+                b.upstream().ok().and_then(|u| u.name().ok().flatten().map(|n| n.to_string()))
+            } else {
+                None
+            },
+            is_remote: !with_head_and_upstream,
+        });
+    }
+    Ok(())
 }
 
 pub fn get_tags(repo: &Repository) -> Result<Vec<TagInfo>, git2::Error> {

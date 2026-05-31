@@ -1,10 +1,11 @@
+mod avatar;
 mod commands;
 mod git;
 mod graph;
 mod models;
 
+use avatar::AvatarCache;
 use commands::repo::CommitCache;
-use commands::repo::AvatarCache;
 use commands::watcher::WatcherState;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]

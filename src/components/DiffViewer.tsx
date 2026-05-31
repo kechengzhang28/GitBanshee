@@ -1,8 +1,52 @@
-import type { DiffFile } from "../types";
+import type { DiffFile, DiffLine } from "../types";
 
 interface Props {
   file: DiffFile | null;
   wrap?: boolean;
+}
+
+function DiffLineRow({ line, wrap }: { line: DiffLine; wrap: boolean }) {
+  const bgClass =
+    line.kind === "addition"
+      ? "bg-[#1a3a2a]"
+      : line.kind === "deletion"
+        ? "bg-[#3a1a1a]"
+        : "";
+
+  const signClass =
+    line.kind === "addition"
+      ? "text-[#4ade80]"
+      : line.kind === "deletion"
+        ? "text-[#f87171]"
+        : "text-gb-text-muted";
+
+  const textClass =
+    line.kind === "addition"
+      ? "text-[#4ade80]"
+      : line.kind === "deletion"
+        ? "text-[#f87171]"
+        : "text-gb-text";
+
+  const sign = line.kind === "addition" ? "+" : line.kind === "deletion" ? "-" : " ";
+
+  return (
+    <div className={`flex min-h-[22px] ${wrap ? "items-start" : "items-center"} ${bgClass}`}>
+      <span className="inline-block w-14 shrink-0 select-none pr-2 text-right text-gb-text-muted">
+        {line.old_lineno ?? ""}
+      </span>
+      <span className="inline-block w-14 shrink-0 select-none pr-2 text-right text-gb-text-muted">
+        {line.new_lineno ?? ""}
+      </span>
+      <span className={`w-5 shrink-0 select-none text-center font-bold ${signClass}`}>
+        {sign}
+      </span>
+      <span
+        className={`flex-1 pr-3 ${wrap ? "whitespace-pre-wrap break-all" : "whitespace-pre"} ${textClass}`}
+      >
+        {line.content}
+      </span>
+    </div>
+  );
 }
 
 export default function DiffViewer({ file, wrap = false }: Props) {
@@ -14,99 +58,19 @@ export default function DiffViewer({ file, wrap = false }: Props) {
     );
   }
 
+  const content = file.hunks.map((hunk, hi) =>
+    hunk.lines.map((line, li) => (
+      <DiffLineRow key={`${hi}-${li}`} line={line} wrap={wrap} />
+    )),
+  );
+
   return (
     <div className="flex h-full flex-col overflow-hidden bg-gb-bg">
       <div className="flex-1 overflow-auto font-mono text-[13px] leading-5">
         {wrap ? (
-          file.hunks.map((hunk, hi) =>
-            hunk.lines.map((line, li) => (
-              <div
-                key={`${hi}-${li}`}
-                className={`flex min-h-[22px] items-start ${
-                  line.kind === "addition"
-                    ? "bg-[#1a3a2a]"
-                    : line.kind === "deletion"
-                      ? "bg-[#3a1a1a]"
-                      : ""
-                }`}
-              >
-                <span className="sticky top-0 inline-block w-14 shrink-0 select-none pr-2 text-right text-gb-text-muted">
-                  {line.old_lineno ?? ""}
-                </span>
-                <span className="sticky top-0 inline-block w-14 shrink-0 select-none pr-2 text-right text-gb-text-muted">
-                  {line.new_lineno ?? ""}
-                </span>
-                <span
-                  className={`w-5 shrink-0 select-none text-center font-bold ${
-                    line.kind === "addition"
-                      ? "text-[#4ade80]"
-                      : line.kind === "deletion"
-                        ? "text-[#f87171]"
-                        : "text-gb-text-muted"
-                  }`}
-                >
-                  {line.kind === "addition" ? "+" : line.kind === "deletion" ? "-" : " "}
-                </span>
-                <span
-                  className={`flex-1 whitespace-pre-wrap break-all pr-3 ${
-                    line.kind === "addition"
-                      ? "text-[#4ade80]"
-                      : line.kind === "deletion"
-                        ? "text-[#f87171]"
-                        : "text-gb-text"
-                  }`}
-                >
-                  {line.content}
-                </span>
-              </div>
-            )),
-          )
+          content
         ) : (
-          <div className="min-w-max">
-            {file.hunks.map((hunk, hi) =>
-              hunk.lines.map((line, li) => (
-                <div
-                  key={`${hi}-${li}`}
-                  className={`flex min-h-[22px] items-center ${
-                    line.kind === "addition"
-                      ? "bg-[#1a3a2a]"
-                      : line.kind === "deletion"
-                        ? "bg-[#3a1a1a]"
-                        : ""
-                  }`}
-                >
-                  <span className="inline-block w-14 shrink-0 select-none pr-2 text-right text-gb-text-muted">
-                    {line.old_lineno ?? ""}
-                  </span>
-                  <span className="inline-block w-14 shrink-0 select-none pr-2 text-right text-gb-text-muted">
-                    {line.new_lineno ?? ""}
-                  </span>
-                  <span
-                    className={`w-5 shrink-0 select-none text-center font-bold ${
-                      line.kind === "addition"
-                        ? "text-[#4ade80]"
-                        : line.kind === "deletion"
-                          ? "text-[#f87171]"
-                          : "text-gb-text-muted"
-                    }`}
-                  >
-                    {line.kind === "addition" ? "+" : line.kind === "deletion" ? "-" : " "}
-                  </span>
-                  <span
-                    className={`flex-1 whitespace-pre pr-3 ${
-                      line.kind === "addition"
-                        ? "text-[#4ade80]"
-                        : line.kind === "deletion"
-                          ? "text-[#f87171]"
-                          : "text-gb-text"
-                    }`}
-                  >
-                    {line.content}
-                  </span>
-                </div>
-              )),
-            )}
-          </div>
+          <div className="min-w-max">{content}</div>
         )}
       </div>
     </div>
