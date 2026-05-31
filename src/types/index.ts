@@ -4,8 +4,9 @@ export interface PositionedCommit {
   col: number;
   row: number;
   color: string;
-  dot_type: "default" | "head" | "merge";
+  dot_type: "default" | "head" | "merge" | "uncommitted";
   author: string;
+  author_email: string;
   message: string;
   committer_date: number;
   refs: RefInfo[];
@@ -23,6 +24,7 @@ export interface BranchPath {
   start_row: number;
   end_row: number;
   color: string;
+  dashed?: boolean;
 }
 
 export interface MergeCurve {

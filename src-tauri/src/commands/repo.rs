@@ -1,5 +1,6 @@
 use crate::git::engine;
-use crate::graph::{CommitGraph, RenderData};
+use crate::git::worktree;
+use crate::graph::{BranchPath, CommitGraph, DotType, PositionedCommit, RenderData};
 use crate::models::RemoteInfo;
 use base64::Engine;
 use serde::{Deserialize, Serialize};
@@ -244,18 +245,14 @@ pub fn get_commits(
 ) -> Result<GetCommitsResponse, String> {
     let needed = offset + limit;
 
+    // Check worktree for uncommitted changes (independent of cache)
+    let has_uncommitted = detect_uncommitted(&path);
+
     {
         let cached = cache.data.lock().unwrap();
-        if let Some(data) = cached.get(&path) {
-            if needed <= data.commits.len() {
-                let start = offset.min(data.commits.len());
-                let end = needed.min(data.commits.len());
-                return Ok(GetCommitsResponse {
-                    commits: data.commits[start..end].to_vec(),
-                    branch_paths: data.branch_paths.clone(),
-                    merge_curves: data.merge_curves.clone(),
-                    fork_curves: data.fork_curves.clone(),
-                });
+        if let Some(cd) = cached.get(&path) {
+            if needed <= cd.commits.len() {
+                return Ok(build_response(cd, offset, limit, has_uncommitted));
             }
         }
     }
@@ -264,18 +261,93 @@ pub fn get_commits(
     let graph = CommitGraph::open_with_count(&path, count)?;
     let data = graph.render().ok_or("no commits")?;
 
-    let start = offset.min(data.commits.len());
-    let end = needed.min(data.commits.len());
-
-    let response = GetCommitsResponse {
-        commits: data.commits[start..end].to_vec(),
-        branch_paths: data.branch_paths.clone(),
-        merge_curves: data.merge_curves.clone(),
-        fork_curves: data.fork_curves.clone(),
-    };
+    let response = build_response(&data, offset, limit, has_uncommitted);
 
     cache.data.lock().unwrap().insert(path.clone(), data);
     Ok(response)
+}
+
+/// Check if the repo has staged or unstaged changes.
+fn detect_uncommitted(path: &str) -> bool {
+    engine::open_repo(path)
+        .ok()
+        .and_then(|repo| worktree::get_status(&repo).ok())
+        .map(|entries| !entries.is_empty())
+        .unwrap_or(false)
+}
+
+/// Build a response, optionally injecting an uncommitted node at offset 0.
+fn build_response(
+    data: &RenderData,
+    offset: usize,
+    limit: usize,
+    has_uncommitted: bool,
+) -> GetCommitsResponse {
+    let needed = offset + limit;
+    let start = offset.min(data.commits.len());
+    let end = needed.min(data.commits.len());
+
+    let mut commits: Vec<PositionedCommit> = data.commits[start..end].to_vec();
+    let mut branch_paths = data.branch_paths.clone();
+    let mut merge_curves = data.merge_curves.clone();
+    let mut fork_curves = data.fork_curves.clone();
+
+    if has_uncommitted && offset == 0 {
+        // Find HEAD commit's column and color
+        let head_info: Option<(usize, &str)> = data.commits.iter()
+            .find(|c| matches!(c.dot_type, DotType::Head))
+            .map(|c| (c.col, c.color.as_str()));
+        let (head_col, head_color) = head_info.unwrap_or((0, "#d29922"));
+
+        // Shift all existing rows by +1
+        for c in &mut commits {
+            c.row += 1;
+        }
+        for bp in &mut branch_paths {
+            bp.start_row += 1;
+            bp.end_row += 1;
+        }
+        for mc in &mut merge_curves {
+            mc.from_row += 1;
+            mc.to_row += 1;
+        }
+        for fc in &mut fork_curves {
+            fc.from_row += 1;
+            fc.to_row += 1;
+        }
+
+        // Dashed vertical connector line from uncommitted (row 0) to HEAD (row 1)
+        branch_paths.push(BranchPath {
+            col: head_col,
+            start_row: 0,
+            end_row: 1,
+            color: head_color.to_string(),
+            dashed: true,
+        });
+
+        let uncommitted = PositionedCommit {
+            sha: "__UNCOMMITTED__".into(),
+            short_sha: "__UNCOMMITTED__".into(),
+            col: head_col,
+            row: 0,
+            color: head_color.to_string(),
+            dot_type: DotType::Uncommitted,
+            author: String::new(),
+            author_email: String::new(),
+            message: "Uncommitted changes".into(),
+            committer_date: 0,
+            refs: vec![],
+            parents: vec![],
+        };
+        commits.insert(0, uncommitted);
+    }
+
+    GetCommitsResponse {
+        commits,
+        branch_paths,
+        merge_curves,
+        fork_curves,
+    }
 }
 
 #[tauri::command]

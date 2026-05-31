@@ -50,6 +50,7 @@ mod tests {
             parents: parents.iter().map(|s| s.to_string()).collect(),
             children: children.iter().map(|s| s.to_string()).collect(),
             author: "test".into(),
+            author_email: "test@example.com".into(),
             message: "test".into(),
             committer_date: date,
             refs: vec![],

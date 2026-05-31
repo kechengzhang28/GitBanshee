@@ -121,6 +121,7 @@ export default function CommitGraph({ zoomLevel = 1, onZoomChange, onToggleDetai
 
   const handleRowClick = useCallback(
     (commit: PositionedCommit) => {
+      if (commit.dot_type === "uncommitted") return;
       const isSel = commit.sha === selectedSha;
       if (!isSel) {
         selectCommit(commit);

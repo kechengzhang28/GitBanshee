@@ -119,6 +119,7 @@ impl CommitGraph {
                 color,
                 dot_type,
                 author: node.author.clone(),
+                author_email: node.author_email.clone(),
                 message: node.message.clone(),
                 committer_date: node.committer_date,
                 refs: node.refs.clone(),
@@ -219,6 +220,7 @@ impl CommitGraph {
                     let committer = commit.committer();
                     let time = committer.when().seconds();
                     let author_name = author.name().unwrap_or("Unknown").to_string();
+                    let author_email = author.email().unwrap_or("").to_string();
                     let message = commit.message().unwrap_or("").trim().to_string();
 
                     let mut refs = self.ref_map.get(&id).cloned().unwrap_or_default();
@@ -241,6 +243,7 @@ impl CommitGraph {
                         parents,
                         children: Vec::new(),
                         author: author_name,
+                        author_email,
                         message,
                         committer_date: time,
                         refs,

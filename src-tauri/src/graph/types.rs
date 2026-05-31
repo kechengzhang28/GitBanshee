@@ -17,6 +17,7 @@ pub struct PositionedCommit {
     pub color: String,
     pub dot_type: DotType,
     pub author: String,
+    pub author_email: String,
     pub message: String,
     pub committer_date: i64,
     pub refs: Vec<RefInfo>,
@@ -29,6 +30,7 @@ pub enum DotType {
     Default,
     Head,
     Merge,
+    Uncommitted,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
@@ -54,6 +56,8 @@ pub struct BranchPath {
     pub start_row: usize,
     pub end_row: usize,
     pub color: String,
+    #[serde(default)]
+    pub dashed: bool,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -81,6 +85,7 @@ pub(crate) struct CommitNode {
     pub parents: Vec<String>,
     pub children: Vec<String>,
     pub author: String,
+    pub author_email: String,
     pub message: String,
     pub committer_date: i64,
     pub refs: Vec<RefInfo>,

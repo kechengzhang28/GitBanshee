@@ -64,13 +64,29 @@ function GraphColumn({ scrollTop, colWidth, contentWidth, zoomLevel = 1, onRowCl
         for (const bp of renderData.branch_paths) {
           if (bp.end_row < firstRow || bp.start_row > lastRow) continue;
           const x0 = laneX(bp.col);
-          const y0 = rowY(Math.max(bp.start_row, firstRow));
-          const y1 = rowY(Math.min(bp.end_row, lastRow));
-          ctx.strokeStyle = bp.color;
-          ctx.beginPath();
-          ctx.moveTo(x0, y0);
-          ctx.lineTo(x0, y1);
-          ctx.stroke();
+          let y0 = rowY(Math.max(bp.start_row, firstRow));
+          let y1 = rowY(Math.min(bp.end_row, lastRow));
+
+          if (bp.dashed) {
+            ctx.save();
+            ctx.setLineDash([1.5 * z, 3.5 * z]);
+            ctx.lineCap = "round";
+            // Offset to circle edges instead of centers
+            y0 += r * 1.6;
+            y1 -= r * 1.6;
+            ctx.strokeStyle = bp.color;
+            ctx.beginPath();
+            ctx.moveTo(x0, y0);
+            ctx.lineTo(x0, y1);
+            ctx.stroke();
+            ctx.restore();
+          } else {
+            ctx.strokeStyle = bp.color;
+            ctx.beginPath();
+            ctx.moveTo(x0, y0);
+            ctx.lineTo(x0, y1);
+            ctx.stroke();
+          }
         }
         for (const mc of renderData.merge_curves) {
           if (mc.to_row < firstRow && mc.from_row < firstRow) continue;
@@ -108,6 +124,7 @@ function GraphColumn({ scrollTop, colWidth, contentWidth, zoomLevel = 1, onRowCl
         const cx = laneX(c.col);
         const cy = rowY(i);
         const isSel = selectedCommit?.sha === c.sha;
+        const isUncommitted = c.dot_type === "uncommitted";
         const cr = r + (isSel ? 3 : 0);
 
         if (isSel) {
@@ -121,8 +138,16 @@ function GraphColumn({ scrollTop, colWidth, contentWidth, zoomLevel = 1, onRowCl
 
         ctx.beginPath();
         ctx.arc(cx, cy, cr, 0, Math.PI * 2);
-        ctx.fillStyle = c.color;
-        ctx.fill();
+
+        if (isUncommitted) {
+          // Hollow circle / ring
+          ctx.lineWidth = Math.max(1.5, 2 * zoomLevel);
+          ctx.strokeStyle = c.color;
+          ctx.stroke();
+        } else {
+          ctx.fillStyle = c.color;
+          ctx.fill();
+        }
       }
     } catch { /* skip frame */ }
 

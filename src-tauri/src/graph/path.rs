@@ -19,6 +19,7 @@ pub fn compute_branch_paths(
                 start_row: seg.start_row,
                 end_row: seg.end_row,
                 color: colors[color_idx].clone(),
+                dashed: false,
             });
         }
     }
