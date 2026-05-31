@@ -243,7 +243,7 @@ export default function CommitGraph({ zoomLevel = 1, onZoomChange, onToggleDetai
                   top,
                   height: ROW_HEIGHT,
                   left: 0,
-                  right: 18,
+                  right: 0,
                   backgroundColor: isSel ? laneColor + "26" : undefined,
                 }}
                 onMouseEnter={(e) => {
