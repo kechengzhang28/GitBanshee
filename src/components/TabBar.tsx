@@ -1,8 +1,11 @@
-import { Plus, X } from "lucide-react";
+import { useState } from "react";
+import { List, Plus, X } from "lucide-react";
 import { open } from "@tauri-apps/plugin-dialog";
 import { useRepoStore } from "../stores/repoStore";
+import RepoListDialog from "./RepoListDialog";
 
 export default function TabBar() {
+  const [showRepoList, setShowRepoList] = useState(false);
   const path = useRepoStore((s) => s.path);
   const openRepoPaths = useRepoStore((s) => s.openRepoPaths);
 
@@ -21,23 +24,23 @@ export default function TabBar() {
         const name = p.split(/[/\\]/).pop() || p;
         const isActive = p === path;
         return (
-          <div key={p} className="flex h-full items-center gap-0.5">
+          <div key={p} className="flex min-w-0 shrink h-full items-center gap-0.5">
             {i > 0 && <Separator />}
             <div
-              className={`flex h-7 shrink-0 items-center gap-0.5 rounded text-xs font-medium transition-colors ${
+              className={`flex h-7 min-w-0 items-center gap-0.5 rounded text-xs font-medium transition-colors ${
                 isActive
                   ? "text-gb-accent"
                   : "text-gb-text-sec hover:bg-gb-hover hover:text-gb-text"
               }`}
             >
               <button
-                className="flex h-full items-center pl-2"
+                className="min-w-0 flex-1 truncate h-full flex items-center pl-2 pr-1"
                 onClick={() => useRepoStore.getState().switchTab(p)}
               >
                 {name}
               </button>
               <button
-                className="flex h-full items-center rounded px-1 text-gb-text-sec hover:text-gb-text"
+                className="flex h-full shrink-0 items-center rounded px-1 text-gb-text-sec hover:text-gb-text"
                 onClick={(e) => { e.stopPropagation(); useRepoStore.getState().closeTab(p); }}
                 title="Close tab"
               >
@@ -49,6 +52,13 @@ export default function TabBar() {
       })}
       <Separator />
       <button
+        onClick={() => setShowRepoList(true)}
+        className="flex h-7 w-7 items-center justify-center rounded text-gb-text-sec hover:bg-gb-hover hover:text-gb-text"
+        title="Open repositories"
+      >
+        <List size={14} />
+      </button>
+      <button
         onClick={handleOpen}
         className="flex h-7 w-7 items-center justify-center rounded text-gb-text-sec hover:bg-gb-hover hover:text-gb-text"
         title="Open repository"
@@ -56,10 +66,11 @@ export default function TabBar() {
         <Plus size={12} />
       </button>
       <div className="flex-1" data-tauri-drag-region />
+      <RepoListDialog open={showRepoList} onClose={() => setShowRepoList(false)} />
     </div>
   );
 }
 
 function Separator() {
-  return <div className="mx-1 h-6 w-px bg-gb-border" />;
+  return <div className="mx-1 h-6 w-px shrink-0 bg-gb-border" />;
 }
