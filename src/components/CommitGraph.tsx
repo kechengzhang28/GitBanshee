@@ -21,6 +21,7 @@ export default function CommitGraph({ zoomLevel = 1, onZoomChange, onToggleDetai
   const overlayRef = useRef<HTMLDivElement>(null);
   const offsetRef = useRef(0);
   const loadingRef = useRef(false);
+  const loadedAllRef = useRef(false);
   const rafRef = useRef(0);
   const [viewport, setViewport] = useState({ scrollTop: 0, containerH: 0, scrollbarW: 0 });
 
@@ -36,10 +37,14 @@ export default function CommitGraph({ zoomLevel = 1, onZoomChange, onToggleDetai
   commitsLenRef.current = commits.length;
 
   const loadMore = useCallback(async () => {
-    if (!path || loadingRef.current) return;
+    if (!path || loadingRef.current || loadedAllRef.current) return;
     loadingRef.current = true;
+    const prevCount = commitsLenRef.current;
     const count = await loadCommits(offsetRef.current, COMMIT_LIMIT);
     offsetRef.current = count;
+    if (count === prevCount) {
+      loadedAllRef.current = true;
+    }
     loadingRef.current = false;
   }, [path, loadCommits]);
 
@@ -49,6 +54,7 @@ export default function CommitGraph({ zoomLevel = 1, onZoomChange, onToggleDetai
   useEffect(() => {
     if (path) {
       offsetRef.current = 0;
+      loadedAllRef.current = false;
       loadMore();
       loadBranches();
     }
