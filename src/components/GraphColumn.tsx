@@ -30,7 +30,7 @@ function GraphColumn({ scrollTop, colWidth, contentWidth, zoomLevel = 1, onRowCl
 
     const w = canvas.clientWidth;
     const h = canvas.clientHeight;
-    if (w === 0 || h === 0) { rafRef.current = requestAnimationFrame(draw); return; }
+    if (w === 0 || h === 0) return;
 
     const dpr = window.devicePixelRatio || 1;
     if (canvas.width !== w * dpr || canvas.height !== h * dpr) {
@@ -44,7 +44,7 @@ function GraphColumn({ scrollTop, colWidth, contentWidth, zoomLevel = 1, onRowCl
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, w, h);
 
-    if (commits.length === 0) { rafRef.current = requestAnimationFrame(draw); return; }
+    if (commits.length === 0) return;
 
     const firstRow = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - OVERSHOT_ROWS);
     const lastRow = Math.min(commits.length, Math.ceil((scrollTop + h) / ROW_HEIGHT) + OVERSHOT_ROWS);
@@ -149,11 +149,10 @@ function GraphColumn({ scrollTop, colWidth, contentWidth, zoomLevel = 1, onRowCl
         }
       }
     } catch { /* skip frame */ }
-
-    rafRef.current = requestAnimationFrame(draw);
   }, [commits, renderData, selectedCommit, scrollTop, zoomLevel]);
 
   useEffect(() => {
+    cancelAnimationFrame(rafRef.current);
     rafRef.current = requestAnimationFrame(draw);
     return () => cancelAnimationFrame(rafRef.current);
   }, [draw]);

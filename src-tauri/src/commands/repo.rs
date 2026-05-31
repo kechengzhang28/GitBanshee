@@ -9,19 +9,24 @@ use std::path::PathBuf;
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
+struct CachedRepo {
+    graph: CommitGraph,
+    data: RenderData,
+}
+
 pub struct CommitCache {
-    pub data: Mutex<HashMap<String, RenderData>>,
+    entries: Mutex<HashMap<String, CachedRepo>>,
 }
 
 impl CommitCache {
     pub fn new() -> Self {
         Self {
-            data: Mutex::new(HashMap::new()),
+            entries: Mutex::new(HashMap::new()),
         }
     }
 
     pub fn clear(&self, path: &str) {
-        self.data.lock().unwrap().remove(path);
+        self.entries.lock().unwrap().remove(path);
     }
 }
 
@@ -244,25 +249,28 @@ pub fn get_commits(
     limit: usize,
 ) -> Result<GetCommitsResponse, String> {
     let needed = offset + limit;
+    let has_uncommitted = offset == 0 && detect_uncommitted(&path);
 
-    {
-        let cached = cache.data.lock().unwrap();
-        if let Some(cd) = cached.get(&path) {
-            if needed <= cd.commits.len() {
-                let has_uncommitted = offset == 0 && detect_uncommitted(&path);
-                return Ok(build_response(cd, offset, limit, has_uncommitted));
-            }
+    let mut entries = cache.entries.lock().unwrap();
+
+    if let Some(cached) = entries.get_mut(&path) {
+        if needed <= cached.data.commits.len() {
+            return Ok(build_response(&cached.data, offset, limit, has_uncommitted));
         }
+
+        while cached.graph.has_more() && cached.data.commits.len() < needed {
+            cached.graph.load_more()?;
+            cached.data = cached.graph.render().ok_or("no commits")?;
+        }
+
+        return Ok(build_response(&cached.data, offset, limit, has_uncommitted));
     }
 
-    let has_uncommitted = offset == 0 && detect_uncommitted(&path);
     let count = needed.max(2000);
     let graph = CommitGraph::open_with_count(&path, count)?;
     let data = graph.render().ok_or("no commits")?;
-
     let response = build_response(&data, offset, limit, has_uncommitted);
-
-    cache.data.lock().unwrap().insert(path.clone(), data);
+    entries.insert(path, CachedRepo { graph, data });
     Ok(response)
 }
 

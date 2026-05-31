@@ -142,6 +142,10 @@ impl CommitGraph {
     pub fn has_more(&self) -> bool {
         self.has_more
     }
+
+    pub fn commit_count(&self) -> usize {
+        self.ordered_hashes.len()
+    }
 }
 
 // ── Private helpers ─────────────────────────────────────────────────
