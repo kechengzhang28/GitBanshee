@@ -18,6 +18,7 @@ interface TabData {
   stashes: StashEntry[];
   tags: TagInfo[];
   error: string | null;
+  lastHeadSha: string | null;
 }
 
 function emptyTab(): TabData {
@@ -34,6 +35,7 @@ function emptyTab(): TabData {
     stashes: [],
     tags: [],
     error: null,
+    lastHeadSha: null,
   };
 }
 
@@ -52,6 +54,8 @@ interface RepoState {
   focusCommit: (sha: string, branchName?: string) => void;
 
   loadStatus: () => Promise<void>;
+  watcherRefresh: () => Promise<void>;
+  focusRefresh: () => Promise<void>;
   stageFile: (filePath: string) => Promise<void>;
   unstageFile: (filePath: string) => Promise<void>;
   stageAll: () => Promise<void>;
@@ -165,6 +169,7 @@ export const useRepoStore = create<RepoState>((set, get) => ({
             newCommits = newCommits.slice(newCommits.length - COMMIT_WINDOW_SIZE / 2);
           }
         }
+        const headSha = newCommits.find((c) => c.dot_type !== "uncommitted")?.sha ?? null;
         return {
           tabs: {
             ...state.tabs,
@@ -177,6 +182,7 @@ export const useRepoStore = create<RepoState>((set, get) => ({
                 merge_curves: response.merge_curves,
                 fork_curves: response.fork_curves,
               },
+              lastHeadSha: offset === 0 ? headSha : tab.lastHeadSha,
             },
           },
         };
@@ -275,6 +281,24 @@ export const useRepoStore = create<RepoState>((set, get) => ({
         return { tabs: { ...state.tabs, [path!]: { ...tab, loadingStatus: false } } };
       });
     }
+  },
+
+  focusRefresh: async () => {
+    const { path } = get();
+    if (!path) return;
+    await get().loadStatus();
+    await get().loadCommits(0, 500);
+    await get().loadBranches();
+  },
+
+  watcherRefresh: async () => {
+    const { path } = get();
+    if (!path) return;
+    // Only refresh worktree status — cheap IPC, instant UI update.
+    // The watcher fires for every file change; reloading 500 commits
+    // on each event causes constant React re-renders that break scrollbars.
+    // Commit graph refreshes on focus change and after internal git operations.
+    await get().loadStatus();
   },
 
   stageFile: async (filePath: string) => {

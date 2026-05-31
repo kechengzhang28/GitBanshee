@@ -292,14 +292,14 @@ fn build_response(
     let mut merge_curves = data.merge_curves.clone();
     let mut fork_curves = data.fork_curves.clone();
 
-    if has_uncommitted && offset == 0 {
+    if has_uncommitted {
         // Find HEAD commit's column and color
         let head_info: Option<(usize, &str)> = data.commits.iter()
             .find(|c| matches!(c.dot_type, DotType::Head))
             .map(|c| (c.col, c.color.as_str()));
         let (head_col, head_color) = head_info.unwrap_or((0, "#d29922"));
 
-        // Shift all existing rows by +1
+        // Shift all existing rows by +1 (always, regardless of offset)
         for c in &mut commits {
             c.row += 1;
         }
@@ -325,21 +325,24 @@ fn build_response(
             dashed: true,
         });
 
-        let uncommitted = PositionedCommit {
-            sha: "__UNCOMMITTED__".into(),
-            short_sha: "__UNCOMMITTED__".into(),
-            col: head_col,
-            row: 0,
-            color: head_color.to_string(),
-            dot_type: DotType::Uncommitted,
-            author: String::new(),
-            author_email: String::new(),
-            message: "Uncommitted changes".into(),
-            committer_date: 0,
-            refs: vec![],
-            parents: vec![],
-        };
-        commits.insert(0, uncommitted);
+        // Only insert the pseudo-node when offset == 0 (first page)
+        if offset == 0 {
+            let uncommitted = PositionedCommit {
+                sha: "__UNCOMMITTED__".into(),
+                short_sha: "__UNCOMMITTED__".into(),
+                col: head_col,
+                row: 0,
+                color: head_color.to_string(),
+                dot_type: DotType::Uncommitted,
+                author: String::new(),
+                author_email: String::new(),
+                message: "Uncommitted changes".into(),
+                committer_date: 0,
+                refs: vec![],
+                parents: vec![],
+            };
+            commits.insert(0, uncommitted);
+        }
     }
 
     GetCommitsResponse {
@@ -360,6 +363,21 @@ pub fn get_branches(path: String) -> Result<Vec<crate::models::BranchInfo>, Stri
 pub fn get_tags(path: String) -> Result<Vec<crate::models::TagInfo>, String> {
     let repo = engine::open_repo(&path).map_err(|e| e.to_string())?;
     engine::get_tags(&repo).map_err(|e| e.to_string())
+}
+
+/// Lightweight status check for focus-refresh optimization.
+/// Returns the current HEAD SHA and whether there are uncommitted changes.
+#[derive(Serialize)]
+pub struct HeadStatus {
+    pub head_sha: String,
+    pub has_uncommitted: bool,
+}
+
+#[tauri::command]
+pub fn get_head_status(path: String) -> Result<HeadStatus, String> {
+    let head_sha = engine::get_head_sha(&path);
+    let has_uncommitted = detect_uncommitted(&path);
+    Ok(HeadStatus { head_sha, has_uncommitted })
 }
 
 #[tauri::command]

@@ -5,6 +5,7 @@ mod models;
 
 use commands::repo::CommitCache;
 use commands::repo::AvatarCache;
+use commands::watcher::WatcherState;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -18,6 +19,7 @@ pub fn run() {
                 .join(".cache")
                 .join("avatars"),
         ))
+        .manage(WatcherState::new())
         .invoke_handler(tauri::generate_handler![
             commands::repo::open_repo,
             commands::repo::get_remote_info,
@@ -25,7 +27,10 @@ pub fn run() {
             commands::repo::get_commits,
             commands::repo::get_branches,
             commands::repo::get_tags,
+            commands::repo::get_head_status,
             commands::repo::get_commit_diff,
+            commands::watcher::watch_repo,
+            commands::watcher::unwatch_repo,
             commands::write::get_status,
             commands::write::stage_file,
             commands::write::unstage_file,

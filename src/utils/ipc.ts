@@ -63,6 +63,23 @@ export async function getStatus(path: string): Promise<StatusEntry[]> {
   return invoke<StatusEntry[]>("get_status", { path });
 }
 
+export interface HeadStatus {
+  head_sha: string;
+  has_uncommitted: boolean;
+}
+
+export async function getHeadStatus(path: string): Promise<HeadStatus> {
+  return invoke<HeadStatus>("get_head_status", { path });
+}
+
+export async function watchRepo(path: string): Promise<void> {
+  return invoke("watch_repo", { path });
+}
+
+export async function unwatchRepo(path: string): Promise<void> {
+  return invoke("unwatch_repo", { path });
+}
+
 export async function stageFile(
   path: string,
   filePath: string,

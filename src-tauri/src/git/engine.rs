@@ -5,6 +5,28 @@ pub fn open_repo(path: &str) -> Result<Repository, git2::Error> {
     Repository::open(path)
 }
 
+/// Get the SHA of the current HEAD commit. Returns empty string on failure.
+pub fn get_head_sha(path: &str) -> String {
+    let repo = match Repository::open(path) {
+        Ok(r) => r,
+        Err(_) => return String::new(),
+    };
+    let head = match repo.head() {
+        Ok(h) => h,
+        Err(_) => return String::new(),
+    };
+    let commit = match head.peel_to_commit() {
+        Ok(c) => c,
+        Err(_) => return String::new(),
+    };
+    let sha = commit.id().to_string();
+    // Drop `repo` explicitly before returning — the `String` owns its data.
+    drop(commit);
+    drop(head);
+    drop(repo);
+    sha
+}
+
 pub fn count_commits(repo: &Repository) -> Result<usize, git2::Error> {
     let mut revwalk = repo.revwalk()?;
     revwalk.set_sorting(Sort::TOPOLOGICAL | Sort::TIME)?;

@@ -23,6 +23,7 @@ git2 = "0.20"
 md5 = "0.7"
 reqwest = { version = "0.12", features = ["blocking", "json"] }
 base64 = "0.22"
+notify = { version = "7", default-features = false, features = ["macos_kqueue"] }
 
 [[bin]]
 name = "create_mock_repo"

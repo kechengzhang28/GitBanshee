@@ -71,9 +71,8 @@ function GraphColumn({ scrollTop, colWidth, contentWidth, zoomLevel = 1, onRowCl
             ctx.save();
             ctx.setLineDash([1.5 * z, 3.5 * z]);
             ctx.lineCap = "round";
-            // Offset to circle edges instead of centers
+            // Offset start to circle bottom edge; end at center to connect with solid line
             y0 += r * 1.6;
-            y1 -= r * 1.6;
             ctx.strokeStyle = bp.color;
             ctx.beginPath();
             ctx.moveTo(x0, y0);
