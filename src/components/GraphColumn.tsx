@@ -1,28 +1,35 @@
 import { useEffect, useRef, useCallback, memo } from "react";
 import { useCommits, useRenderData, useSelectedCommit } from "../stores/repoStore";
+import type { PositionedCommit } from "../types";
 import { ROW_HEIGHT, LANE_WIDTH, NODE_RADIUS, PADDING_X, OVERSHOT_ROWS } from "./constants";
 
 interface GraphColumnProps {
   scrollTop: number;
   colWidth: number;
+  contentWidth?: number;
   zoomLevel?: number;
+  onRowClick?: (commit: PositionedCommit) => void;
+  onRowContextMenu?: (e: React.MouseEvent, commit: PositionedCommit) => void;
+  onWheel?: (e: React.WheelEvent) => void;
 }
 
-function GraphColumn({ scrollTop, colWidth, zoomLevel = 1 }: GraphColumnProps) {
+function GraphColumn({ scrollTop, colWidth, contentWidth, zoomLevel = 1, onRowClick, onRowContextMenu, onWheel }: GraphColumnProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const rafRef = useRef(0);
 
   const commits = useCommits();
   const renderData = useRenderData();
   const selectedCommit = useSelectedCommit();
 
+  const canvasW = contentWidth ?? colWidth;
+
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const rect = canvas.getBoundingClientRect();
-    const w = rect.width;
-    const h = rect.height;
+    const w = canvas.clientWidth;
+    const h = canvas.clientHeight;
     if (w === 0 || h === 0) { rafRef.current = requestAnimationFrame(draw); return; }
 
     const dpr = window.devicePixelRatio || 1;
@@ -34,12 +41,8 @@ function GraphColumn({ scrollTop, colWidth, zoomLevel = 1 }: GraphColumnProps) {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const root = getComputedStyle(document.documentElement);
-    const bg = root.getPropertyValue("--gb-bg").trim() || "#0b0d0f";
-
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.fillStyle = bg;
-    ctx.fillRect(0, 0, w, h);
+    ctx.clearRect(0, 0, w, h);
 
     if (commits.length === 0) { rafRef.current = requestAnimationFrame(draw); return; }
 
@@ -56,33 +59,26 @@ function GraphColumn({ scrollTop, colWidth, zoomLevel = 1 }: GraphColumnProps) {
     const rowY = (row: number) => -scrollTop + row * ROW_HEIGHT + ROW_HEIGHT / 2;
 
     try {
-      // Layer 1: Branch paths (vertical straight lines)
       if (renderData) {
         ctx.lineWidth = lineW;
         for (const bp of renderData.branch_paths) {
           if (bp.end_row < firstRow || bp.start_row > lastRow) continue;
-
           const x0 = laneX(bp.col);
           const y0 = rowY(Math.max(bp.start_row, firstRow));
           const y1 = rowY(Math.min(bp.end_row, lastRow));
-
           ctx.strokeStyle = bp.color;
           ctx.beginPath();
           ctx.moveTo(x0, y0);
           ctx.lineTo(x0, y1);
           ctx.stroke();
         }
-
-        // Layer 2: Merge curves (from merge commit to merged parent)
         for (const mc of renderData.merge_curves) {
           if (mc.to_row < firstRow && mc.from_row < firstRow) continue;
           if (mc.to_row > lastRow && mc.from_row > lastRow) continue;
-
           const sx = laneX(mc.from_col);
           const sy = rowY(mc.from_row);
           const ex = laneX(mc.to_col);
           const ey = rowY(mc.to_row);
-
           ctx.strokeStyle = mc.color;
           ctx.beginPath();
           ctx.moveTo(sx, sy);
@@ -90,17 +86,13 @@ function GraphColumn({ scrollTop, colWidth, zoomLevel = 1 }: GraphColumnProps) {
           ctx.lineTo(ex, ey);
           ctx.stroke();
         }
-
-        // Layer 3: Fork curves (from parent to forking child)
         for (const fc of renderData.fork_curves) {
           if (fc.to_row < firstRow && fc.from_row < firstRow) continue;
           if (fc.to_row > lastRow && fc.from_row > lastRow) continue;
-
           const sx = laneX(fc.from_col);
           const sy = rowY(fc.from_row);
           const ex = laneX(fc.to_col);
           const ey = rowY(fc.to_row);
-
           ctx.strokeStyle = fc.color;
           ctx.beginPath();
           ctx.moveTo(sx, sy);
@@ -110,7 +102,6 @@ function GraphColumn({ scrollTop, colWidth, zoomLevel = 1 }: GraphColumnProps) {
         }
       }
 
-      // Layer 4: Nodes
       for (let i = firstRow; i < lastRow; i++) {
         const c = commits[i];
         if (!c) continue;
@@ -143,9 +134,39 @@ function GraphColumn({ scrollTop, colWidth, zoomLevel = 1 }: GraphColumnProps) {
     return () => cancelAnimationFrame(rafRef.current);
   }, [draw]);
 
+  const handleClick = useCallback((e: React.MouseEvent) => {
+    const el = scrollRef.current;
+    if (!el || commits.length === 0 || !onRowClick) return;
+    const rect = el.getBoundingClientRect();
+    const relativeY = e.clientY - rect.top;
+    const idx = Math.floor((scrollTop + relativeY) / ROW_HEIGHT);
+    if (idx >= 0 && idx < commits.length) {
+      onRowClick(commits[idx]);
+    }
+  }, [commits, scrollTop, onRowClick]);
+
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
+    const el = scrollRef.current;
+    if (!el || commits.length === 0 || !onRowContextMenu) return;
+    const rect = el.getBoundingClientRect();
+    const relativeY = e.clientY - rect.top;
+    const idx = Math.floor((scrollTop + relativeY) / ROW_HEIGHT);
+    if (idx >= 0 && idx < commits.length) {
+      onRowContextMenu(e, commits[idx]);
+    }
+  }, [commits, scrollTop, onRowContextMenu]);
+
   return (
-    <div className="shrink-0" style={{ width: colWidth, height: "100%" }}>
-      <canvas ref={canvasRef} className="block size-full" />
+    <div className="shrink-0 flex flex-col" style={{ width: colWidth, height: "100%" }}>
+      <div
+        ref={scrollRef}
+        className="flex-1 min-h-0 overflow-x-auto overflow-y-hidden pointer-events-auto"
+        onClick={handleClick}
+        onContextMenu={handleContextMenu}
+        onWheel={onWheel}
+      >
+        <canvas ref={canvasRef} style={{ width: canvasW, height: "100%", display: "block" }} />
+      </div>
     </div>
   );
 }

@@ -18,3 +18,4 @@ export const ZOOM_MAX = 2.5;
 export const ZOOM_STEP = 1.1;
 export const ZOOM_STEP_OUT = 0.9;
 export const MIN_GRAPH_COL_WIDTH = 160;
+export const MESSAGE_MIN_WIDTH = 200;

@@ -7,7 +7,8 @@ import MessageColumn from "./MessageColumn";
 import ContextMenu, { type ContextMenuItem } from "./ContextMenu";
 import { ROW_HEIGHT, LANE_WIDTH, PADDING_X, COMMIT_LIMIT,
   SCROLL_THRESHOLD, BRANCH_COL_WIDTH, HEADER_HEIGHT,
-  ZOOM_MIN, ZOOM_MAX, ZOOM_STEP, ZOOM_STEP_OUT, MIN_GRAPH_COL_WIDTH } from "./constants";
+  ZOOM_MIN, ZOOM_MAX, ZOOM_STEP, ZOOM_STEP_OUT,
+  MIN_GRAPH_COL_WIDTH } from "./constants";
 
 interface Props {
   zoomLevel?: number;
@@ -21,7 +22,7 @@ export default function CommitGraph({ zoomLevel = 1, onZoomChange, onToggleDetai
   const offsetRef = useRef(0);
   const loadingRef = useRef(false);
   const rafRef = useRef(0);
-  const [viewport, setViewport] = useState({ scrollTop: 0, containerH: 0, scrollLeft: 0, scrollbarW: 0 });
+  const [viewport, setViewport] = useState({ scrollTop: 0, containerH: 0, scrollbarW: 0 });
 
   const path = useRepoStore((s) => s.path);
   const commits = useCommits();
@@ -73,7 +74,6 @@ export default function CommitGraph({ zoomLevel = 1, onZoomChange, onToggleDetai
 
     let pendingH = 0;
     let pendingST = 0;
-    let pendingSL = 0;
     let pendingSB = 0;
 
     const onResize = ([e]: ResizeObserverEntry[]) => {
@@ -85,7 +85,6 @@ export default function CommitGraph({ zoomLevel = 1, onZoomChange, onToggleDetai
 
     const onScroll = () => {
       pendingST = sc.scrollTop;
-      pendingSL = sc.scrollLeft;
       schedule();
       const visibleBottom = sc.scrollTop + sc.clientHeight;
       if (visibleBottom > commitsLenRef.current * ROW_HEIGHT - SCROLL_THRESHOLD) {
@@ -99,7 +98,7 @@ export default function CommitGraph({ zoomLevel = 1, onZoomChange, onToggleDetai
       scheduled = true;
       rafRef.current = requestAnimationFrame(() => {
         scheduled = false;
-        setViewport({ scrollTop: pendingST, containerH: pendingH, scrollLeft: pendingSL, scrollbarW: pendingSB });
+        setViewport({ scrollTop: pendingST, containerH: pendingH, scrollbarW: pendingSB });
       });
     };
 
@@ -144,9 +143,19 @@ export default function CommitGraph({ zoomLevel = 1, onZoomChange, onToggleDetai
     [commits],
   );
 
-  const { scrollTop, containerH, scrollLeft, scrollbarW } = viewport;
+  const { scrollTop, containerH, scrollbarW } = viewport;
   const effectiveLaneW = LANE_WIDTH * zoomLevel;
-  const graphColW = Math.max(MIN_GRAPH_COL_WIDTH, PADDING_X * 2 + maxLane * effectiveLaneW);
+
+  const autoGraphW = useMemo(
+    () => Math.max(MIN_GRAPH_COL_WIDTH, PADDING_X * 2 + maxLane * effectiveLaneW),
+    [maxLane, effectiveLaneW],
+  );
+  const [manualGraphW, setManualGraphW] = useState<number | null>(null);
+  const visualGraphW = manualGraphW ?? autoGraphW;
+  const canvasGraphW = Math.max(visualGraphW, autoGraphW);
+  const graphColWRef = useRef(visualGraphW);
+  graphColWRef.current = visualGraphW;
+
   const visibleRows = containerH > 0 ? Math.ceil(containerH / ROW_HEIGHT) + 1 : 20;
   const contentRows = commits.length * ROW_HEIGHT;
   const contentH = contentRows > 0 ? contentRows + 1 : containerH;
@@ -170,7 +179,24 @@ export default function CommitGraph({ zoomLevel = 1, onZoomChange, onToggleDetai
     const el = scrollRef.current;
     if (!el) return;
     el.scrollTop += e.deltaY;
-    if (e.shiftKey) el.scrollLeft += e.deltaY;
+  }, []);
+
+  const handleResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const startX = e.clientX;
+    const startW = graphColWRef.current;
+
+    const onMove = (ev: MouseEvent) => {
+      setManualGraphW(Math.max(MIN_GRAPH_COL_WIDTH, startW + ev.clientX - startX));
+    };
+    const onUp = () => {
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+    };
+
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
   }, []);
 
   return (
@@ -181,10 +207,15 @@ export default function CommitGraph({ zoomLevel = 1, onZoomChange, onToggleDetai
           Branch
         </div>
         <div
-          className="shrink-0 border-r border-gb-border pl-2"
-          style={{ width: graphColW, height: "100%" }}
+          className="relative shrink-0 border-r border-gb-border pl-2"
+          style={{ width: visualGraphW, height: "100%" }}
         >
           Graph
+          <div
+            className="absolute right-0 top-0 h-full w-1 cursor-col-resize hover:bg-gb-accent/40"
+            style={{ marginRight: -0.5 }}
+            onMouseDown={handleResizeStart}
+          />
         </div>
         <div className="min-w-0 flex-1 truncate pl-3" style={{ height: "100%" }}>
           Commit Message
@@ -208,13 +239,10 @@ export default function CommitGraph({ zoomLevel = 1, onZoomChange, onToggleDetai
 
         <div
           ref={overlayRef}
-          className="pointer-events-none absolute inset-0"
+          className="pointer-events-none absolute inset-0 overflow-hidden"
           style={{ right: scrollbarW }}
         >
-          <div
-            className="flex h-full overflow-hidden"
-            style={{ marginLeft: -scrollLeft }}
-          >
+          <div className="relative z-[1] flex h-full">
             <BranchColumn
               scrollTop={scrollTop}
               visibleRows={visibleRows}
@@ -222,8 +250,12 @@ export default function CommitGraph({ zoomLevel = 1, onZoomChange, onToggleDetai
             />
             <GraphColumn
               scrollTop={scrollTop}
-              colWidth={graphColW}
+              colWidth={visualGraphW}
+              contentWidth={canvasGraphW}
               zoomLevel={zoomLevel}
+              onRowClick={handleRowClick}
+              onRowContextMenu={handleContextMenu}
+              onWheel={handleRowWheel}
             />
             <MessageColumn
               scrollTop={scrollTop}
