@@ -111,32 +111,38 @@ pub fn get_commits(
     path: String,
     offset: usize,
     limit: usize,
+    force_refresh: Option<bool>,
 ) -> Result<GetCommitsResponse, String> {
     let needed = offset + limit;
+    let force = force_refresh.unwrap_or(false);
 
     let mut entries = cache.entries.lock().unwrap();
 
-    if let Some(cached) = entries.get_mut(&path) {
-        let has_uncommitted = cached.has_uncommitted;
+    if !force {
+        if let Some(cached) = entries.get_mut(&path) {
+            let has_uncommitted = cached.has_uncommitted;
 
-        if needed <= cached.data.commits.len() {
+            if needed <= cached.data.commits.len() {
+                return Ok(build_response(&cached.data, offset, limit, has_uncommitted));
+            }
+
+            let prev_len = cached.data.commits.len();
+
+            while cached.graph.has_more() && cached.data.commits.len() < needed {
+                cached.graph.load_more()?;
+                cached.data = cached.graph.render().ok_or("no commits")?;
+            }
+
+            if cached.data.commits.len() > prev_len {
+                let mut response = build_response(&cached.data, 0, needed.min(cached.data.commits.len()), has_uncommitted);
+                response.reload_all = true;
+                return Ok(response);
+            }
+
             return Ok(build_response(&cached.data, offset, limit, has_uncommitted));
         }
-
-        let prev_len = cached.data.commits.len();
-
-        while cached.graph.has_more() && cached.data.commits.len() < needed {
-            cached.graph.load_more()?;
-            cached.data = cached.graph.render().ok_or("no commits")?;
-        }
-
-        if cached.data.commits.len() > prev_len {
-            let mut response = build_response(&cached.data, 0, needed.min(cached.data.commits.len()), has_uncommitted);
-            response.reload_all = true;
-            return Ok(response);
-        }
-
-        return Ok(build_response(&cached.data, offset, limit, has_uncommitted));
+    } else {
+        entries.remove(&path);
     }
 
     let has_uncommitted = detect_uncommitted(&path);

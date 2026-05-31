@@ -47,7 +47,7 @@ interface RepoState {
   openRepo: (path: string) => Promise<void>;
   switchTab: (path: string) => void;
   closeTab: (path: string) => void;
-  loadCommits: (offset: number, limit: number) => Promise<number>;
+  loadCommits: (offset: number, limit: number, forceRefresh?: boolean) => Promise<number>;
   loadBranches: () => Promise<void>;
   loadTags: () => Promise<void>;
   selectCommit: (commit: PositionedCommit | null) => void;
@@ -170,11 +170,11 @@ export const useRepoStore = create<RepoState>((set, get) => ({
 
   // ── Data loading ────────────────────────────────────────────
 
-  loadCommits: async (offset: number, limit: number) => {
+  loadCommits: async (offset: number, limit: number, forceRefresh?: boolean) => {
     const { path, tabs } = get();
     if (!path || !tabs[path]) return 0;
     try {
-      const response = await ipc.getCommits(path, offset, limit);
+      const response = await ipc.getCommits(path, offset, limit, forceRefresh);
       set((state) => {
         const tab = state.tabs[path];
         if (!tab) return {};
@@ -281,6 +281,8 @@ export const useRepoStore = create<RepoState>((set, get) => ({
     const { path } = get();
     if (!path) return;
     await get().loadStatus();
+    await get().loadCommits(0, 500, true);
+    await get().loadBranches();
   },
 
   stageFile: async (filePath: string) => {

@@ -22,6 +22,7 @@ export async function getCommits(
   path: string,
   offset: number,
   limit: number,
+  forceRefresh?: boolean,
 ): Promise<{
   commits: PositionedCommit[];
   branch_paths: BranchPath[];
@@ -35,7 +36,7 @@ export async function getCommits(
     merge_curves: MergeCurve[];
     fork_curves: ForkCurve[];
     reload_all?: boolean;
-  }>("get_commits", { path, offset, limit });
+  }>("get_commits", { path, offset, limit, force_refresh: forceRefresh });
 }
 
 export async function getBranches(path: string): Promise<BranchInfo[]> {

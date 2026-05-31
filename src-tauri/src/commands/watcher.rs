@@ -1,4 +1,4 @@
-use notify::{Event, EventKind, RecursiveMode, Watcher, Config};
+use notify::{Event, EventKind, RecursiveMode, Watcher};
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Mutex;
@@ -25,9 +25,8 @@ pub fn watch_repo(
 ) -> Result<(), String> {
     let repo_path = PathBuf::from(&path);
 
-    let watch_dirs = vec![
-        repo_path.join(".git"),
-    ];
+    // Watch the entire repo (including worktree and .git)
+    let watch_path = repo_path.clone();
 
     let app_clone = app.clone();
     let path_clone = path.clone();
@@ -42,19 +41,12 @@ pub fn watch_repo(
         }
     ).map_err(|e| format!("Failed to create watcher: {}", e))?;
 
-    watcher.configure(
-        Config::default()
-            .with_poll_interval(std::time::Duration::from_secs(2))
-    ).map_err(|e| format!("Failed to configure watcher: {}", e))?;
-
-    for dir in &watch_dirs {
-        if dir.exists() {
-            watcher.watch(dir, RecursiveMode::Recursive)
-                .map_err(|e| format!("Failed to watch {:?}: {}", dir, e))?;
-        }
+    if watch_path.exists() {
+        watcher.watch(&watch_path, RecursiveMode::Recursive)
+            .map_err(|e| format!("Failed to watch {:?}: {}", watch_path, e))?;
     }
 
-    state.watchers.lock().unwrap().insert(path, (watcher, watch_dirs));
+    state.watchers.lock().unwrap().insert(path, (watcher, vec![watch_path]));
     Ok(())
 }
 
