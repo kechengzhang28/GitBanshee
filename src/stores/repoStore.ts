@@ -175,6 +175,9 @@ export const useRepoStore = create<RepoState>((set, get) => ({
     if (!path || !tabs[path]) return 0;
     try {
       const response = await ipc.getCommits(path, offset, limit, forceRefresh);
+      if (response.commits.length === 0 && offset > 0 && !forceRefresh) {
+        return get().tabs[path]?.commits.length ?? 0;
+      }
       set((state) => {
         const tab = state.tabs[path];
         if (!tab) return {};
