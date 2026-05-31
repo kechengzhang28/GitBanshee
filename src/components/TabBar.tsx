@@ -53,29 +53,31 @@ export default function TabBar() {
         );
       })}
       <Separator />
-      <button
-        onClick={() => setShowRepoList(true)}
-        className="flex h-7 w-7 items-center justify-center rounded text-gb-text-sec hover:bg-gb-hover hover:text-gb-text"
-        title="Open repositories"
-      >
-        <List size={14} />
-      </button>
-      <button
-        onClick={handleOpen}
-        className="flex h-7 w-7 items-center justify-center rounded text-gb-text-sec hover:bg-gb-hover hover:text-gb-text"
-        title="Open repository"
-      >
-        <Plus size={12} />
-      </button>
-      <div className="flex-1" data-tauri-drag-region />
-      <Separator />
-      <button
-        onClick={() => setShowSettings(true)}
-        className="flex h-7 w-7 items-center justify-center rounded text-gb-text-sec hover:bg-gb-hover hover:text-gb-text"
-        title="Settings"
-      >
-        <Settings size={14} />
-      </button>
+      <div className="flex shrink-0 items-center gap-0.5">
+        <button
+          onClick={() => setShowRepoList(true)}
+          className="flex h-7 w-7 items-center justify-center rounded text-gb-text-sec hover:bg-gb-hover hover:text-gb-text"
+          title="Open repositories"
+        >
+          <List size={14} />
+        </button>
+        <button
+          onClick={handleOpen}
+          className="flex h-7 w-7 items-center justify-center rounded text-gb-text-sec hover:bg-gb-hover hover:text-gb-text"
+          title="Open repository"
+        >
+          <Plus size={12} />
+        </button>
+        <div className="flex-1" data-tauri-drag-region />
+        <Separator />
+        <button
+          onClick={() => setShowSettings(true)}
+          className="flex h-7 w-7 items-center justify-center rounded text-gb-text-sec hover:bg-gb-hover hover:text-gb-text"
+          title="Settings"
+        >
+          <Settings size={14} />
+        </button>
+      </div>
       <RepoListDialog open={showRepoList} onClose={() => setShowRepoList(false)} />
       <SettingsModal open={showSettings} onClose={() => setShowSettings(false)} />
     </div>
