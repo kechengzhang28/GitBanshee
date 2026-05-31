@@ -9,6 +9,10 @@ use std::path::PathBuf;
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
+fn open(path: &str) -> Result<git2::Repository, String> {
+    engine::open_repo(path).map_err(|e| e.to_string())
+}
+
 struct CachedRepo {
     graph: CommitGraph,
     data: RenderData,
@@ -234,7 +238,7 @@ pub struct GetCommitsResponse {
 
 #[tauri::command]
 pub fn open_repo(_cache: tauri::State<'_, CommitCache>, path: String) -> Result<OpenRepoResult, String> {
-    let repo = engine::open_repo(&path).map_err(|e| e.to_string())?;
+    let repo = open(&path)?;
     let branches = engine::get_branches(&repo).map_err(|e| e.to_string())?;
     let commit_count = engine::count_commits(&repo).map_err(|e| e.to_string())?;
     Ok(OpenRepoResult {
@@ -381,13 +385,13 @@ fn build_response(
 
 #[tauri::command]
 pub fn get_branches(path: String) -> Result<Vec<crate::models::BranchInfo>, String> {
-    let repo = engine::open_repo(&path).map_err(|e| e.to_string())?;
+    let repo = open(&path)?;
     engine::get_branches(&repo).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 pub fn get_tags(path: String) -> Result<Vec<crate::models::TagInfo>, String> {
-    let repo = engine::open_repo(&path).map_err(|e| e.to_string())?;
+    let repo = open(&path)?;
     engine::get_tags(&repo).map_err(|e| e.to_string())
 }
 
@@ -408,13 +412,13 @@ pub fn get_head_status(path: String) -> Result<HeadStatus, String> {
 
 #[tauri::command]
 pub fn get_commit_diff(path: String, hash: String) -> Result<crate::models::DiffContent, String> {
-    let repo = engine::open_repo(&path).map_err(|e| e.to_string())?;
+    let repo = open(&path)?;
     engine::get_commit_diff(&repo, &hash).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 pub fn get_remote_info(path: String) -> Result<Option<RemoteInfo>, String> {
-    let repo = engine::open_repo(&path).map_err(|e| e.to_string())?;
+    let repo = open(&path)?;
     let config = repo.config().map_err(|e| format!("Failed to read git config: {}", e))?;
 
     // Read remote.origin.url
@@ -494,7 +498,7 @@ pub fn get_author_avatar(
     sha: String,
     cache: tauri::State<'_, AvatarCache>,
 ) -> Result<Option<String>, String> {
-    let repo = engine::open_repo(&path).map_err(|e| e.to_string())?;
+    let repo = open(&path)?;
 
     let is_github = repo
         .config()

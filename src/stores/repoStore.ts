@@ -1,4 +1,4 @@
-import { create } from "zustand";
+import { create, type StoreApi } from "zustand";
 import type { BranchInfo, PositionedCommit, RenderData, StashEntry, StatusEntry, TagInfo } from "../types";
 import * as ipc from "../utils/ipc";
 import { toast } from "./toastStore";
@@ -81,6 +81,30 @@ interface RepoState {
   rebaseAbort: () => Promise<void>;
 }
 
+type SetState = StoreApi<RepoState>["setState"];
+type GetState = StoreApi<RepoState>["getState"];
+
+function updateTab(
+  set: SetState,
+  p: string,
+  updates: Partial<TabData>,
+): void {
+  set((state) => {
+    const tab = state.tabs[p];
+    if (!tab) return {};
+    return { tabs: { ...state.tabs, [p]: { ...tab, ...updates } } };
+  });
+}
+
+async function invalidateAndReload(set: SetState, get: GetState): Promise<void> {
+  const p = get().path;
+  if (!p) return;
+  updateTab(set, p, { commits: [] });
+  await get().loadCommits(0, 500);
+  await get().loadBranches();
+  await get().loadStatus();
+}
+
 export const useRepoStore = create<RepoState>((set, get) => ({
   path: null,
   tabs: {},
@@ -91,7 +115,6 @@ export const useRepoStore = create<RepoState>((set, get) => ({
   openRepo: async (repoPath: string) => {
     const { tabs } = get();
 
-    // If already open, just switch
     if (tabs[repoPath]) {
       set({ path: repoPath });
       return;
@@ -110,12 +133,8 @@ export const useRepoStore = create<RepoState>((set, get) => ({
           : [...state.openRepoPaths, result.path],
       }));
     } catch (e) {
-      set((state) => {
-        if (!state.path) return {};
-        const tab = state.tabs[state.path];
-        if (!tab) return {};
-        return { tabs: { ...state.tabs, [state.path]: { ...tab, error: String(e) } } };
-      });
+      const p = get().path;
+      if (p) updateTab(set, p, { error: String(e) });
     }
   },
 
@@ -142,7 +161,6 @@ export const useRepoStore = create<RepoState>((set, get) => ({
 
     let nextPath = path;
     if (path === repoPath) {
-      // Switch to a remaining tab
       const idx = openRepoPaths.indexOf(repoPath);
       nextPath = nextPaths[Math.min(idx, nextPaths.length - 1)];
     }
@@ -158,7 +176,7 @@ export const useRepoStore = create<RepoState>((set, get) => ({
     try {
       const response = await ipc.getCommits(path, offset, limit);
       set((state) => {
-        const tab = state.tabs[path!];
+        const tab = state.tabs[path];
         if (!tab) return {};
         let newCommits: typeof response.commits;
         if (offset === 0 || response.reload_all) {
@@ -173,7 +191,7 @@ export const useRepoStore = create<RepoState>((set, get) => ({
         return {
           tabs: {
             ...state.tabs,
-            [path!]: {
+            [path]: {
               ...tab,
               commits: newCommits,
               renderData: {
@@ -199,11 +217,7 @@ export const useRepoStore = create<RepoState>((set, get) => ({
     if (!path || !tabs[path]) return;
     try {
       const branches = await ipc.getBranches(path);
-      set((state) => {
-        const tab = state.tabs[path!];
-        if (!tab) return {};
-        return { tabs: { ...state.tabs, [path!]: { ...tab, branches } } };
-      });
+      updateTab(set, path, { branches });
     } catch (e) {
       toast("error", String(e));
     }
@@ -214,11 +228,7 @@ export const useRepoStore = create<RepoState>((set, get) => ({
     if (!path || !tabs[path]) return;
     try {
       const tags = await ipc.getTags(path);
-      set((state) => {
-        const tab = state.tabs[path!];
-        if (!tab) return {};
-        return { tabs: { ...state.tabs, [path!]: { ...tab, tags } } };
-      });
+      updateTab(set, path, { tags });
     } catch (e) {
       toast("error", String(e));
     }
@@ -229,11 +239,7 @@ export const useRepoStore = create<RepoState>((set, get) => ({
   selectCommit: (commit: PositionedCommit | null) => {
     const { path, tabs } = get();
     if (!path || !tabs[path]) return;
-    set((state) => {
-      const tab = state.tabs[path!];
-      if (!tab) return {};
-      return { tabs: { ...state.tabs, [path!]: { ...tab, selectedCommit: commit, focusedBranch: null } } };
-    });
+    updateTab(set, path, { selectedCommit: commit, focusedBranch: null });
   },
 
   focusCommit: (sha: string, branchName?: string) => {
@@ -241,20 +247,10 @@ export const useRepoStore = create<RepoState>((set, get) => ({
     if (!path || !tabs[path]) return;
     const tab = tabs[path];
     const found = sha ? tab.commits.find((c) => c.sha === sha || c.sha.startsWith(sha)) : undefined;
-    set((state) => {
-      const t = state.tabs[path!];
-      if (!t) return {};
-      return {
-        tabs: {
-          ...state.tabs,
-          [path!]: {
-            ...t,
-            focusedBranch: branchName ?? null,
-            selectedCommit: found ?? null,
-            scrollTarget: found?.sha ?? null,
-          },
-        },
-      };
+    updateTab(set, path, {
+      focusedBranch: branchName ?? null,
+      selectedCommit: found ?? null,
+      scrollTarget: found?.sha ?? null,
     });
   },
 
@@ -263,25 +259,13 @@ export const useRepoStore = create<RepoState>((set, get) => ({
   loadStatus: async () => {
     const { path, tabs } = get();
     if (!path || !tabs[path]) return;
-    set((state) => {
-      const tab = state.tabs[path!];
-      if (!tab) return {};
-      return { tabs: { ...state.tabs, [path!]: { ...tab, loadingStatus: true } } };
-    });
+    updateTab(set, path, { loadingStatus: true });
     try {
       const status = await ipc.getStatus(path);
-      set((state) => {
-        const tab = state.tabs[path!];
-        if (!tab) return {};
-        return { tabs: { ...state.tabs, [path!]: { ...tab, status, error: null, loadingStatus: false } } };
-      });
+      updateTab(set, path, { status, error: null, loadingStatus: false });
     } catch (e) {
       toast("error", String(e));
-      set((state) => {
-        const tab = state.tabs[path!];
-        if (!tab) return {};
-        return { tabs: { ...state.tabs, [path!]: { ...tab, loadingStatus: false } } };
-      });
+      updateTab(set, path, { loadingStatus: false });
     }
   },
 
@@ -296,10 +280,6 @@ export const useRepoStore = create<RepoState>((set, get) => ({
   watcherRefresh: async () => {
     const { path } = get();
     if (!path) return;
-    // Only refresh worktree status — cheap IPC, instant UI update.
-    // The watcher fires for every file change; reloading 500 commits
-    // on each event causes constant React re-renders that break scrollbars.
-    // Commit graph refreshes on focus change and after internal git operations.
     await get().loadStatus();
   },
 
@@ -331,11 +311,7 @@ export const useRepoStore = create<RepoState>((set, get) => ({
       const result = await ipc.createCommit(path, message, amend);
       await get().loadStatus();
       await get().loadBranches();
-      set((state) => {
-        const tab = state.tabs[path!];
-        if (!tab) return {};
-        return { tabs: { ...state.tabs, [path!]: { ...tab, commits: [] } } };
-      });
+      updateTab(set, path, { commits: [] });
       await get().loadCommits(0, 500);
       toast("success", `Commit ${result.short_hash} ${amend ? "amended" : "created"}`);
     } catch (e) { toast("error", String(e)); }
@@ -360,14 +336,7 @@ export const useRepoStore = create<RepoState>((set, get) => ({
     if (!path) return;
     try {
       await ipc.checkoutBranch(path, name);
-      set((state) => {
-        const tab = state.tabs[path!];
-        if (!tab) return {};
-        return { tabs: { ...state.tabs, [path!]: { ...tab, commits: [] } } };
-      });
-      await get().loadCommits(0, 500);
-      await get().loadBranches();
-      await get().loadStatus();
+      await invalidateAndReload(set, get);
       toast("info", `Switched to '${name}'`);
     } catch (e) { toast("error", String(e)); }
   },
@@ -377,14 +346,7 @@ export const useRepoStore = create<RepoState>((set, get) => ({
     if (!path) return;
     try {
       await ipc.checkoutCommit(path, hash);
-      set((state) => {
-        const tab = state.tabs[path!];
-        if (!tab) return {};
-        return { tabs: { ...state.tabs, [path!]: { ...tab, commits: [] } } };
-      });
-      await get().loadCommits(0, 500);
-      await get().loadBranches();
-      await get().loadStatus();
+      await invalidateAndReload(set, get);
       toast("info", `Detached HEAD at ${hash.slice(0, 7)}`);
     } catch (e) { toast("error", String(e)); }
   },
@@ -403,13 +365,7 @@ export const useRepoStore = create<RepoState>((set, get) => ({
     try {
       const msg = await ipc.pull(path, "origin", current);
       toast("success", msg);
-      set((state) => {
-        const tab = state.tabs[path!];
-        if (!tab) return {};
-        return { tabs: { ...state.tabs, [path!]: { ...tab, commits: [] } } };
-      });
-      await get().loadCommits(0, 500);
-      await get().loadBranches();
+      await invalidateAndReload(set, get);
     } catch (e) { toast("error", String(e)); }
   },
 
@@ -427,16 +383,9 @@ export const useRepoStore = create<RepoState>((set, get) => ({
     if (!path || !tabs[path]) return;
     try {
       const entries = await ipc.stashList(path);
-      set((state) => {
-        const tab = state.tabs[path!];
-        if (!tab) return {};
-        return { tabs: { ...state.tabs, [path!]: { ...tab, stashes: entries } } };
-      });
-    } catch { set((state) => {
-        const tab = state.tabs[path!];
-        if (!tab) return {};
-        return { tabs: { ...state.tabs, [path!]: { ...tab, stashes: [] } } };
-      });
+      updateTab(set, path, { stashes: entries });
+    } catch {
+      updateTab(set, path, { stashes: [] });
     }
   },
 
@@ -452,12 +401,8 @@ export const useRepoStore = create<RepoState>((set, get) => ({
     try {
       const msg = await ipc.stashPop(path, index);
       toast("success", msg);
-      set((state) => {
-        const tab = state.tabs[path!];
-        if (!tab) return {};
-        return { tabs: { ...state.tabs, [path!]: { ...tab, commits: [] } } };
-      });
-      await get().loadStashes(); await get().loadStatus(); await get().loadCommits(0, 500);
+      await get().loadStashes();
+      await invalidateAndReload(set, get);
     } catch (e) { toast("error", String(e)); }
   },
   stashApply: async (index: number) => {
@@ -481,14 +426,7 @@ export const useRepoStore = create<RepoState>((set, get) => ({
     try {
       const msg = await ipc.cherryPick(path, hash);
       toast("success", msg);
-      set((state) => {
-        const tab = state.tabs[path!];
-        if (!tab) return {};
-        return { tabs: { ...state.tabs, [path!]: { ...tab, commits: [] } } };
-      });
-      await get().loadCommits(0, 500);
-      await get().loadBranches();
-      await get().loadStatus();
+      await invalidateAndReload(set, get);
     } catch (e) { toast("error", String(e)); }
   },
 
@@ -498,14 +436,7 @@ export const useRepoStore = create<RepoState>((set, get) => ({
     try {
       const msg = await ipc.rebaseStart(path, ontoBranch);
       toast("success", msg);
-      set((state) => {
-        const tab = state.tabs[path!];
-        if (!tab) return {};
-        return { tabs: { ...state.tabs, [path!]: { ...tab, commits: [] } } };
-      });
-      await get().loadCommits(0, 500);
-      await get().loadBranches();
-      await get().loadStatus();
+      await invalidateAndReload(set, get);
     } catch (e) { toast("error", String(e)); }
   },
 
@@ -515,14 +446,7 @@ export const useRepoStore = create<RepoState>((set, get) => ({
     try {
       const msg = await ipc.rebaseContinue(path);
       toast("success", msg);
-      set((state) => {
-        const tab = state.tabs[path!];
-        if (!tab) return {};
-        return { tabs: { ...state.tabs, [path!]: { ...tab, commits: [] } } };
-      });
-      await get().loadCommits(0, 500);
-      await get().loadBranches();
-      await get().loadStatus();
+      await invalidateAndReload(set, get);
     } catch (e) { toast("error", String(e)); }
   },
 
@@ -532,14 +456,7 @@ export const useRepoStore = create<RepoState>((set, get) => ({
     try {
       const msg = await ipc.rebaseAbort(path);
       toast("info", msg);
-      set((state) => {
-        const tab = state.tabs[path!];
-        if (!tab) return {};
-        return { tabs: { ...state.tabs, [path!]: { ...tab, commits: [] } } };
-      });
-      await get().loadCommits(0, 500);
-      await get().loadBranches();
-      await get().loadStatus();
+      await invalidateAndReload(set, get);
     } catch (e) { toast("error", String(e)); }
   },
 }));

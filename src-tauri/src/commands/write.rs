@@ -9,21 +9,25 @@ pub struct CommitResult {
     pub short_hash: String,
 }
 
+fn open(path: &str) -> Result<git2::Repository, String> {
+    engine::open_repo(path).map_err(|e| e.to_string())
+}
+
 #[tauri::command]
 pub fn get_status(path: String) -> Result<Vec<StatusEntry>, String> {
-    let repo = engine::open_repo(&path).map_err(|e| e.to_string())?;
+    let repo = open(&path)?;
     worktree::get_status(&repo).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 pub fn stage_file(path: String, file_path: String) -> Result<(), String> {
-    let repo = engine::open_repo(&path).map_err(|e| e.to_string())?;
+    let repo = open(&path)?;
     worktree::stage_file(&repo, &file_path).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 pub fn unstage_file(path: String, file_path: String) -> Result<(), String> {
-    let repo = engine::open_repo(&path).map_err(|e| e.to_string())?;
+    let repo = open(&path)?;
     worktree::unstage_file(&repo, &file_path).map_err(|e| e.to_string())
 }
 
@@ -39,7 +43,7 @@ pub fn create_commit(
     message: String,
     amend: bool,
 ) -> Result<CommitResult, String> {
-    let repo = engine::open_repo(&path).map_err(|e| e.to_string())?;
+    let repo = open(&path)?;
     let oid = engine::create_commit(&repo, &message, amend).map_err(|e| e.to_string())?;
     let short = oid.to_string().chars().take(7).collect();
     cache.clear(&path);
@@ -51,13 +55,13 @@ pub fn create_commit(
 
 #[tauri::command]
 pub fn create_branch(path: String, name: String) -> Result<(), String> {
-    let repo = engine::open_repo(&path).map_err(|e| e.to_string())?;
+    let repo = open(&path)?;
     branch::create_branch(&repo, &name).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 pub fn delete_branch(path: String, name: String) -> Result<(), String> {
-    let repo = engine::open_repo(&path).map_err(|e| e.to_string())?;
+    let repo = open(&path)?;
     branch::delete_branch(&repo, &name).map_err(|e| e.to_string())
 }
 
@@ -67,7 +71,7 @@ pub fn checkout_branch(
     path: String,
     name: String,
 ) -> Result<(), String> {
-    let repo = engine::open_repo(&path).map_err(|e| e.to_string())?;
+    let repo = open(&path)?;
     branch::checkout_branch(&repo, &name).map_err(|e| e.to_string())?;
     cache.clear(&path);
     Ok(())
@@ -79,7 +83,7 @@ pub fn checkout_commit(
     path: String,
     hash: String,
 ) -> Result<(), String> {
-    let repo = engine::open_repo(&path).map_err(|e| e.to_string())?;
+    let repo = open(&path)?;
     engine::checkout_commit(&repo, &hash).map_err(|e| e.to_string())?;
     cache.clear(&path);
     Ok(())
@@ -87,7 +91,7 @@ pub fn checkout_commit(
 
 #[tauri::command]
 pub fn fetch_remote(path: String, remote_name: String) -> Result<String, String> {
-    let repo = engine::open_repo(&path).map_err(|e| e.to_string())?;
+    let repo = open(&path)?;
     remote::fetch(&repo, &remote_name)
 }
 
@@ -98,7 +102,7 @@ pub fn pull(
     remote_name: String,
     branch: String,
 ) -> Result<String, String> {
-    let repo = engine::open_repo(&path).map_err(|e| e.to_string())?;
+    let repo = open(&path)?;
     let result = remote::pull(&repo, &remote_name, &branch)?;
     cache.clear(&path);
     Ok(result)
@@ -106,7 +110,7 @@ pub fn pull(
 
 #[tauri::command]
 pub fn push(path: String, remote_name: String) -> Result<String, String> {
-    let repo = engine::open_repo(&path).map_err(|e| e.to_string())?;
+    let repo = open(&path)?;
     remote::push(&repo, &remote_name)
 }
 
@@ -114,13 +118,13 @@ pub fn push(path: String, remote_name: String) -> Result<String, String> {
 
 #[tauri::command]
 pub fn stash_list(path: String) -> Result<Vec<StashEntry>, String> {
-    let mut repo = engine::open_repo(&path).map_err(|e| e.to_string())?;
+    let mut repo = open(&path)?;
     stash::stash_list(&mut repo)
 }
 
 #[tauri::command]
 pub fn stash_save(path: String, message: Option<String>) -> Result<String, String> {
-    let mut repo = engine::open_repo(&path).map_err(|e| e.to_string())?;
+    let mut repo = open(&path)?;
     stash::stash_save(&mut repo, message.as_deref())
 }
 
@@ -130,7 +134,7 @@ pub fn stash_pop(
     path: String,
     index: usize,
 ) -> Result<String, String> {
-    let mut repo = engine::open_repo(&path).map_err(|e| e.to_string())?;
+    let mut repo = open(&path)?;
     let result = stash::stash_pop(&mut repo, index)?;
     cache.clear(&path);
     Ok(result)
@@ -142,7 +146,7 @@ pub fn stash_apply(
     path: String,
     index: usize,
 ) -> Result<String, String> {
-    let mut repo = engine::open_repo(&path).map_err(|e| e.to_string())?;
+    let mut repo = open(&path)?;
     let result = stash::stash_apply(&mut repo, index)?;
     cache.clear(&path);
     Ok(result)
@@ -150,7 +154,7 @@ pub fn stash_apply(
 
 #[tauri::command]
 pub fn stash_drop(path: String, index: usize) -> Result<String, String> {
-    let mut repo = engine::open_repo(&path).map_err(|e| e.to_string())?;
+    let mut repo = open(&path)?;
     stash::stash_drop(&mut repo, index)
 }
 
@@ -162,7 +166,7 @@ pub fn cherry_pick(
     path: String,
     commit_hash: String,
 ) -> Result<String, String> {
-    let repo = engine::open_repo(&path).map_err(|e| e.to_string())?;
+    let repo = open(&path)?;
     let result = cherry_pick_op(&repo, &commit_hash)?;
     cache.clear(&path);
     Ok(result)
@@ -176,7 +180,7 @@ pub fn rebase_start(
     path: String,
     onto_branch: String,
 ) -> Result<String, String> {
-    let repo = engine::open_repo(&path).map_err(|e| e.to_string())?;
+    let repo = open(&path)?;
     let result = rebase_op(&repo, &onto_branch)?;
     cache.clear(&path);
     Ok(result)
@@ -187,7 +191,7 @@ pub fn rebase_continue(
     cache: tauri::State<'_, CommitCache>,
     path: String,
 ) -> Result<String, String> {
-    let repo = engine::open_repo(&path).map_err(|e| e.to_string())?;
+    let repo = open(&path)?;
     let result = rebase_continue_op(&repo)?;
     cache.clear(&path);
     Ok(result)
@@ -198,7 +202,7 @@ pub fn rebase_abort(
     cache: tauri::State<'_, CommitCache>,
     path: String,
 ) -> Result<String, String> {
-    let repo = engine::open_repo(&path).map_err(|e| e.to_string())?;
+    let repo = open(&path)?;
     let result = rebase_abort_op(&repo)?;
     cache.clear(&path);
     Ok(result)
