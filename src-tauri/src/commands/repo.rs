@@ -12,6 +12,7 @@ use std::time::{Duration, Instant};
 struct CachedRepo {
     graph: CommitGraph,
     data: RenderData,
+    has_uncommitted: bool,
 }
 
 pub struct CommitCache {
@@ -227,6 +228,8 @@ pub struct GetCommitsResponse {
     pub branch_paths: Vec<crate::graph::BranchPath>,
     pub merge_curves: Vec<crate::graph::MergeCurve>,
     pub fork_curves: Vec<crate::graph::ForkCurve>,
+    #[serde(default)]
+    pub reload_all: bool,
 }
 
 #[tauri::command]
@@ -249,28 +252,38 @@ pub fn get_commits(
     limit: usize,
 ) -> Result<GetCommitsResponse, String> {
     let needed = offset + limit;
-    let has_uncommitted = offset == 0 && detect_uncommitted(&path);
 
     let mut entries = cache.entries.lock().unwrap();
 
     if let Some(cached) = entries.get_mut(&path) {
+        let has_uncommitted = cached.has_uncommitted;
+
         if needed <= cached.data.commits.len() {
             return Ok(build_response(&cached.data, offset, limit, has_uncommitted));
         }
+
+        let prev_len = cached.data.commits.len();
 
         while cached.graph.has_more() && cached.data.commits.len() < needed {
             cached.graph.load_more()?;
             cached.data = cached.graph.render().ok_or("no commits")?;
         }
 
+        if cached.data.commits.len() > prev_len {
+            let mut response = build_response(&cached.data, 0, needed.min(cached.data.commits.len()), has_uncommitted);
+            response.reload_all = true;
+            return Ok(response);
+        }
+
         return Ok(build_response(&cached.data, offset, limit, has_uncommitted));
     }
 
+    let has_uncommitted = detect_uncommitted(&path);
     let count = needed.max(2000);
     let graph = CommitGraph::open_with_count(&path, count)?;
     let data = graph.render().ok_or("no commits")?;
     let response = build_response(&data, offset, limit, has_uncommitted);
-    entries.insert(path, CachedRepo { graph, data });
+    entries.insert(path, CachedRepo { graph, data, has_uncommitted });
     Ok(response)
 }
 
@@ -300,34 +313,22 @@ fn build_response(
             branch_paths: data.branch_paths.clone(),
             merge_curves: data.merge_curves.clone(),
             fork_curves: data.fork_curves.clone(),
+            reload_all: false,
         };
     }
 
-    let mut commits: Vec<PositionedCommit> = data.commits[start..end].to_vec();
     let mut branch_paths = data.branch_paths.clone();
     let mut merge_curves = data.merge_curves.clone();
     let mut fork_curves = data.fork_curves.clone();
+
+    for bp in &mut branch_paths { bp.start_row += 1; bp.end_row += 1; }
+    for mc in &mut merge_curves { mc.from_row += 1; mc.to_row += 1; }
+    for fc in &mut fork_curves { fc.from_row += 1; fc.to_row += 1; }
 
     let head_info: Option<(usize, &str)> = data.commits.iter()
         .find(|c| matches!(c.dot_type, DotType::Head))
         .map(|c| (c.col, c.color.as_str()));
     let (head_col, head_color) = head_info.unwrap_or((0, "#d29922"));
-
-    for c in &mut commits {
-        c.row += 1;
-    }
-    for bp in &mut branch_paths {
-        bp.start_row += 1;
-        bp.end_row += 1;
-    }
-    for mc in &mut merge_curves {
-        mc.from_row += 1;
-        mc.to_row += 1;
-    }
-    for fc in &mut fork_curves {
-        fc.from_row += 1;
-        fc.to_row += 1;
-    }
 
     branch_paths.push(BranchPath {
         col: head_col,
@@ -336,6 +337,22 @@ fn build_response(
         color: head_color.to_string(),
         dashed: true,
     });
+
+    if offset != 0 {
+        return GetCommitsResponse {
+            commits: data.commits[start..end].to_vec(),
+            branch_paths,
+            merge_curves,
+            fork_curves,
+            reload_all: false,
+        };
+    }
+
+    let mut commits: Vec<PositionedCommit> = data.commits[start..end].to_vec();
+
+    for c in &mut commits {
+        c.row += 1;
+    }
 
     let uncommitted = PositionedCommit {
         sha: "__UNCOMMITTED__".into(),
@@ -358,6 +375,7 @@ fn build_response(
         branch_paths,
         merge_curves,
         fork_curves,
+        reload_all: false,
     }
 }
 

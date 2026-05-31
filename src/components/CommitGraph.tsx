@@ -38,8 +38,8 @@ export default function CommitGraph({ zoomLevel = 1, onZoomChange, onToggleDetai
   const loadMore = useCallback(async () => {
     if (!path || loadingRef.current) return;
     loadingRef.current = true;
-    await loadCommits(offsetRef.current, COMMIT_LIMIT);
-    offsetRef.current += COMMIT_LIMIT;
+    const count = await loadCommits(offsetRef.current, COMMIT_LIMIT);
+    offsetRef.current = count;
     loadingRef.current = false;
   }, [path, loadCommits]);
 
@@ -76,15 +76,22 @@ export default function CommitGraph({ zoomLevel = 1, onZoomChange, onToggleDetai
     let pendingST = 0;
     let pendingSB = 0;
 
-    const onResize = ([e]: ResizeObserverEntry[]) => {
+    const onContainerResize = ([e]: ResizeObserverEntry[]) => {
       pendingH = e.contentRect.height;
-      const sbw = sc.offsetWidth - sc.clientWidth;
-      if (sbw !== pendingSB) pendingSB = sbw;
       schedule();
+    };
+
+    const onScrollbarResize = () => {
+      const sbw = sc.offsetWidth - sc.clientWidth;
+      if (sbw !== pendingSB) {
+        pendingSB = sbw;
+        schedule();
+      }
     };
 
     const onScroll = () => {
       pendingST = sc.scrollTop;
+      onScrollbarResize();
       schedule();
       const visibleBottom = sc.scrollTop + sc.clientHeight;
       if (visibleBottom > commitsLenRef.current * ROW_HEIGHT - SCROLL_THRESHOLD) {
@@ -102,13 +109,20 @@ export default function CommitGraph({ zoomLevel = 1, onZoomChange, onToggleDetai
       });
     };
 
-    const obs = new ResizeObserver(onResize);
-    obs.observe(el);
+    const containerObs = new ResizeObserver(onContainerResize);
+    containerObs.observe(el);
+    const scrollObs = new ResizeObserver(onScrollbarResize);
+    scrollObs.observe(sc);
     sc.addEventListener("scroll", onScroll, { passive: true });
+
+    pendingH = el.clientHeight;
+    pendingSB = sc.offsetWidth - sc.clientWidth;
+    schedule();
 
     return () => {
       cancelAnimationFrame(rafRef.current);
-      obs.disconnect();
+      containerObs.disconnect();
+      scrollObs.disconnect();
       sc.removeEventListener("scroll", onScroll);
     };
   }, []);

@@ -47,7 +47,7 @@ interface RepoState {
   openRepo: (path: string) => Promise<void>;
   switchTab: (path: string) => void;
   closeTab: (path: string) => void;
-  loadCommits: (offset: number, limit: number) => Promise<void>;
+  loadCommits: (offset: number, limit: number) => Promise<number>;
   loadBranches: () => Promise<void>;
   loadTags: () => Promise<void>;
   selectCommit: (commit: PositionedCommit | null) => void;
@@ -154,14 +154,14 @@ export const useRepoStore = create<RepoState>((set, get) => ({
 
   loadCommits: async (offset: number, limit: number) => {
     const { path, tabs } = get();
-    if (!path || !tabs[path]) return;
+    if (!path || !tabs[path]) return 0;
     try {
       const response = await ipc.getCommits(path, offset, limit);
       set((state) => {
         const tab = state.tabs[path!];
         if (!tab) return {};
         let newCommits: typeof response.commits;
-        if (offset === 0) {
+        if (offset === 0 || response.reload_all) {
           newCommits = response.commits;
         } else {
           newCommits = [...tab.commits, ...response.commits];
@@ -187,8 +187,10 @@ export const useRepoStore = create<RepoState>((set, get) => ({
           },
         };
       });
+      return get().tabs[path]?.commits.length ?? 0;
     } catch (e) {
       toast("error", String(e));
+      return 0;
     }
   },
 

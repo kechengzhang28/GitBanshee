@@ -27,12 +27,14 @@ export async function getCommits(
   branch_paths: BranchPath[];
   merge_curves: MergeCurve[];
   fork_curves: ForkCurve[];
+  reload_all?: boolean;
 }> {
   return invoke<{
     commits: PositionedCommit[];
     branch_paths: BranchPath[];
     merge_curves: MergeCurve[];
     fork_curves: ForkCurve[];
+    reload_all?: boolean;
   }>("get_commits", { path, offset, limit });
 }
 
