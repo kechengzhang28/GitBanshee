@@ -1,11 +1,13 @@
 import { useState } from "react";
-import { List, Plus, X } from "lucide-react";
+import { List, Plus, Settings, X } from "lucide-react";
 import { open } from "@tauri-apps/plugin-dialog";
 import { useRepoStore } from "../stores/repoStore";
 import RepoListDialog from "./RepoListDialog";
+import SettingsModal from "./SettingsModal";
 
 export default function TabBar() {
   const [showRepoList, setShowRepoList] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const path = useRepoStore((s) => s.path);
   const openRepoPaths = useRepoStore((s) => s.openRepoPaths);
 
@@ -66,7 +68,16 @@ export default function TabBar() {
         <Plus size={12} />
       </button>
       <div className="flex-1" data-tauri-drag-region />
+      <Separator />
+      <button
+        onClick={() => setShowSettings(true)}
+        className="flex h-7 w-7 items-center justify-center rounded text-gb-text-sec hover:bg-gb-hover hover:text-gb-text"
+        title="Settings"
+      >
+        <Settings size={14} />
+      </button>
       <RepoListDialog open={showRepoList} onClose={() => setShowRepoList(false)} />
+      <SettingsModal open={showSettings} onClose={() => setShowSettings(false)} />
     </div>
   );
 }
