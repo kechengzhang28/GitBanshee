@@ -280,19 +280,19 @@ export const useRepoStore = create<RepoState>((set, get) => ({
   stageFile: async (filePath: string) => {
     const { path } = get();
     if (!path) return;
-    try { await ipc.stageFile(path, filePath); await get().loadStatus(); }
+    try { await ipc.stageFile(path, filePath); await get().loadStatus(); await get().loadCommits(0, 500); }
     catch (e) { toast("error", String(e)); }
   },
   unstageFile: async (filePath: string) => {
     const { path } = get();
     if (!path) return;
-    try { await ipc.unstageFile(path, filePath); await get().loadStatus(); }
+    try { await ipc.unstageFile(path, filePath); await get().loadStatus(); await get().loadCommits(0, 500); }
     catch (e) { toast("error", String(e)); }
   },
   stageAll: async () => {
     const { path } = get();
     if (!path) return;
-    try { await ipc.stageAll(path); await get().loadStatus(); }
+    try { await ipc.stageAll(path); await get().loadStatus(); await get().loadCommits(0, 500); }
     catch (e) { toast("error", String(e)); }
   },
 
@@ -417,7 +417,7 @@ export const useRepoStore = create<RepoState>((set, get) => ({
   stashSave: async (message?: string) => {
     const { path } = get();
     if (!path) return;
-    try { const msg = await ipc.stashSave(path, message); toast("success", msg || "Stash saved"); await get().loadStashes(); await get().loadStatus(); }
+    try { const msg = await ipc.stashSave(path, message); toast("success", msg || "Stash saved"); await get().loadStashes(); await get().loadStatus(); await get().loadCommits(0, 500); }
     catch (e) { toast("error", String(e)); }
   },
   stashPop: async (index: number) => {
@@ -437,7 +437,7 @@ export const useRepoStore = create<RepoState>((set, get) => ({
   stashApply: async (index: number) => {
     const { path } = get();
     if (!path) return;
-    try { const msg = await ipc.stashApply(path, index); toast("success", msg); await get().loadStatus(); }
+    try { const msg = await ipc.stashApply(path, index); toast("success", msg); await get().loadStatus(); await get().loadCommits(0, 500); }
     catch (e) { toast("error", String(e)); }
   },
   stashDrop: async (index: number) => {
