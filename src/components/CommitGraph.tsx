@@ -21,7 +21,7 @@ export default function CommitGraph({ zoomLevel = 1, onZoomChange, onToggleDetai
   const offsetRef = useRef(0);
   const loadingRef = useRef(false);
   const rafRef = useRef(0);
-  const [viewport, setViewport] = useState({ scrollTop: 0, containerH: 0 });
+  const [viewport, setViewport] = useState({ scrollTop: 0, containerH: 0, scrollLeft: 0, scrollbarW: 0 });
 
   const path = useRepoStore((s) => s.path);
   const commits = useCommits();
@@ -73,14 +73,19 @@ export default function CommitGraph({ zoomLevel = 1, onZoomChange, onToggleDetai
 
     let pendingH = 0;
     let pendingST = 0;
+    let pendingSL = 0;
+    let pendingSB = 0;
 
     const onResize = ([e]: ResizeObserverEntry[]) => {
       pendingH = e.contentRect.height;
+      const sbw = sc.offsetWidth - sc.clientWidth;
+      if (sbw !== pendingSB) pendingSB = sbw;
       schedule();
     };
 
     const onScroll = () => {
       pendingST = sc.scrollTop;
+      pendingSL = sc.scrollLeft;
       schedule();
       const visibleBottom = sc.scrollTop + sc.clientHeight;
       if (visibleBottom > commitsLenRef.current * ROW_HEIGHT - SCROLL_THRESHOLD) {
@@ -94,7 +99,7 @@ export default function CommitGraph({ zoomLevel = 1, onZoomChange, onToggleDetai
       scheduled = true;
       rafRef.current = requestAnimationFrame(() => {
         scheduled = false;
-        setViewport({ scrollTop: pendingST, containerH: pendingH });
+        setViewport({ scrollTop: pendingST, containerH: pendingH, scrollLeft: pendingSL, scrollbarW: pendingSB });
       });
     };
 
@@ -139,7 +144,7 @@ export default function CommitGraph({ zoomLevel = 1, onZoomChange, onToggleDetai
     [commits],
   );
 
-  const { scrollTop, containerH } = viewport;
+  const { scrollTop, containerH, scrollLeft, scrollbarW } = viewport;
   const effectiveLaneW = LANE_WIDTH * zoomLevel;
   const graphColW = Math.max(MIN_GRAPH_COL_WIDTH, PADDING_X * 2 + maxLane * effectiveLaneW);
   const visibleRows = containerH > 0 ? Math.ceil(containerH / ROW_HEIGHT) + 1 : 20;
@@ -204,8 +209,12 @@ export default function CommitGraph({ zoomLevel = 1, onZoomChange, onToggleDetai
         <div
           ref={overlayRef}
           className="pointer-events-none absolute inset-0"
+          style={{ right: scrollbarW }}
         >
-          <div className="flex h-full">
+          <div
+            className="flex h-full overflow-hidden"
+            style={{ marginLeft: -scrollLeft }}
+          >
             <BranchColumn
               scrollTop={scrollTop}
               visibleRows={visibleRows}
