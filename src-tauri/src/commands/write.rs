@@ -109,9 +109,15 @@ pub fn pull(
 }
 
 #[tauri::command]
-pub fn push(path: String, remote_name: String) -> Result<String, String> {
+pub fn push(
+    cache: tauri::State<'_, CommitCache>,
+    path: String,
+    remote_name: String,
+) -> Result<String, String> {
     let repo = open(&path)?;
-    remote::push(&repo, &remote_name)
+    let result = remote::push(&repo, &remote_name)?;
+    cache.clear(&path);
+    Ok(result)
 }
 
 // ---- Stash commands ----

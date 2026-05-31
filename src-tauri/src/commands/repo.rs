@@ -15,7 +15,6 @@ fn open(path: &str) -> Result<git2::Repository, String> {
 struct CachedRepo {
     graph: CommitGraph,
     data: RenderData,
-    has_uncommitted: bool,
 }
 
 pub struct CommitCache {
@@ -120,7 +119,7 @@ pub fn get_commits(
 
     if !force {
         if let Some(cached) = entries.get_mut(&path) {
-            let has_uncommitted = cached.has_uncommitted;
+            let has_uncommitted = detect_uncommitted(&path);
 
             if needed <= cached.data.commits.len() {
                 return Ok(build_response(&cached.data, offset, limit, has_uncommitted));
@@ -150,7 +149,7 @@ pub fn get_commits(
     let graph = CommitGraph::open_with_count(&path, count)?;
     let data = graph.render().ok_or("no commits")?;
     let response = build_response(&data, offset, limit, has_uncommitted);
-    entries.insert(path, CachedRepo { graph, data, has_uncommitted });
+    entries.insert(path, CachedRepo { graph, data });
     Ok(response)
 }
 

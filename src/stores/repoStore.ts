@@ -273,7 +273,7 @@ export const useRepoStore = create<RepoState>((set, get) => ({
     const { path } = get();
     if (!path) return;
     await get().loadStatus();
-    await get().loadCommits(0, 500);
+    await get().loadCommits(0, 500, true);
     await get().loadBranches();
   },
 
@@ -356,8 +356,11 @@ export const useRepoStore = create<RepoState>((set, get) => ({
   fetchRemote: async () => {
     const { path } = get();
     if (!path) return;
-    try { const msg = await ipc.fetchRemote(path, "origin"); toast("info", msg); }
-    catch (e) { toast("error", String(e)); }
+    try {
+      const msg = await ipc.fetchRemote(path, "origin");
+      toast("info", msg);
+      await invalidateAndReload(set, get);
+    } catch (e) { toast("error", String(e)); }
   },
 
   pull: async () => {
@@ -374,8 +377,11 @@ export const useRepoStore = create<RepoState>((set, get) => ({
   push: async () => {
     const { path } = get();
     if (!path) return;
-    try { const msg = await ipc.push(path, "origin"); toast("success", msg); }
-    catch (e) { toast("error", String(e)); }
+    try {
+      const msg = await ipc.push(path, "origin");
+      toast("success", msg);
+      await invalidateAndReload(set, get);
+    } catch (e) { toast("error", String(e)); }
   },
 
   // ── Stash ───────────────────────────────────────────────────
